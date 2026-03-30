@@ -1,0 +1,18 @@
+{
+  "name": "0 Waste Shop App",
+  "short_name": "0waste",
+  "description": "Marketplace Sirkular Terpercaya — Selamatkan makanan surplus, aman & terverifikasi Anti-Basi.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#3ec976",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "categories": ["food", "shopping", "lifestyle"]
+}
