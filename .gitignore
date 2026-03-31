@@ -16,3 +16,7 @@ dist/
 !test_sb.mjs
 !check_db.mjs
 !test_db.mjs
+
+# Mobile builds
+*.apk
+*.zip
