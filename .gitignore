@@ -4,8 +4,6 @@ dist/
 .env.local
 .env.*.local
 *.log
-android/
-ios/
 .DS_Store
 
 # Backups and sensitive data
