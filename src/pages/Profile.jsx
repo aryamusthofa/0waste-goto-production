@@ -245,6 +245,26 @@ export default function Profile({ navigate }) {
           </div>
         </div>
 
+        {/* 🔐 Admin Console (Only visible to Super Admins) */}
+        {profile?.is_super_admin && (
+          <div className="bg-white rounded-[24px] p-5 shadow-soft border-2 border-dashed border-green-100 animate-pulse-slow">
+            <p className="font-black text-[15px] mb-2" style={{ color: '#1a1a2e' }}>🔱 Developer Options</p>
+            <button
+              onClick={() => navigate('admin')}
+              className="w-full flex items-center justify-between py-4 px-4 rounded-2xl active:scale-95 transition-all"
+              style={{ background: 'rgba(62,201,118,0.1)', border: '1px solid #3ec976' }}
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-xl">🛠️</span>
+                <span className="text-sm font-bold text-[#1a1a2e]">Buka Admin Console</span>
+              </div>
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#3ec976" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {/* Logout */}
         <button
           onClick={handleLogout}
