@@ -14,6 +14,10 @@ export default function ProductDetail({ navigate, params }) {
   const [wishlisted, setWishlisted] = useState(false)
   const [wishlistId, setWishlistId] = useState(null)
   const [wishlistLoading, setWishlistLoading] = useState(false)
+  const [showReport, setShowReport] = useState(false)
+  const [reportReason, setReportReason] = useState('fraud')
+  const [reportDetails, setReportDetails] = useState('')
+  const [reporting, setReporting] = useState(false)
 
   useEffect(() => {
     if (!user || !product?.id) return
@@ -46,6 +50,26 @@ export default function ProductDetail({ navigate, params }) {
       console.error('Wishlist error:', e)
     } finally {
       setWishlistLoading(false)
+    }
+  }
+
+  const handleReport = async () => {
+    if (!user) { navigate('login'); return }
+    setReporting(true)
+    try {
+      const { data, error } = await supabase.rpc('submit_report', {
+        p_type: 'product',
+        p_target: product.id,
+        p_reason: reportReason,
+        p_details: reportDetails
+      })
+      if (error) throw error
+      alert('Laporan berhasil dikirim. Terima kasih atas partisipasi Anda!')
+      setShowReport(false)
+    } catch (e) {
+      alert('Gagal mengirim laporan: ' + e.message)
+    } finally {
+      setReporting(false)
     }
   }
 
@@ -188,7 +212,74 @@ export default function ProductDetail({ navigate, params }) {
             )}
           </div>
         ))}
+
+        {/* Report Button */}
+        <button
+          onClick={() => setShowReport(true)}
+          className="w-full mt-8 py-3 rounded-xl border border-dashed border-red-200 text-red-500 text-xs font-bold flex items-center justify-center gap-2 active:scale-95 transition-all"
+        >
+          <span>⚠️</span> Laporkan jika produk bermasalah
+        </button>
       </div>
+
+      {/* Report Modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center px-4 pb-20 sm:p-0">
+          <div className="fixed inset-0 transition-opacity" onClick={() => setShowReport(false)}>
+            <div className="absolute inset-0 bg-black opacity-50 backdrop-blur-sm"></div>
+          </div>
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-xl transform transition-all sm:max-w-md w-full px-6 pt-8 pb-10 animate-slide-up">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-lg font-black" style={{ color: '#1a1a2e' }}>Laporkan Produk</h3>
+              <button onClick={() => setShowReport(false)} className="p-2 text-gray-400">✕</button>
+            </div>
+            
+            <div className="space-y-4 mb-8">
+              <p className="text-sm text-gray-500">Pilih alasan kamu melaporkan produk "{product.name}":</p>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: 'fraud', label: 'Penipuan' },
+                  { id: 'bad_quality', label: 'Kualitas Buruk' },
+                  { id: 'wrong_category', label: 'Salah Kategori' },
+                  { id: 'other', label: 'Lainnya' }
+                ].map(r => (
+                  <button
+                    key={r.id}
+                    onClick={() => setReportReason(r.id)}
+                    className="py-3 px-4 rounded-2xl text-[13px] font-bold transition-all border-2"
+                    style={{
+                      borderColor: reportReason === r.id ? '#3ec976' : '#F4F4F9',
+                      background: reportReason === r.id ? 'rgba(62,201,118,0.08)' : '#F4F4F9',
+                      color: reportReason === r.id ? '#3ec976' : '#6b7280'
+                    }}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={reportDetails}
+                onChange={e => setReportDetails(e.target.value)}
+                rows={3}
+                placeholder="Jelaskan lebih detail tentang masalah ini..."
+                className="w-full p-4 rounded-2xl text-sm outline-none border-2 border-transparent transition-all"
+                style={{ background: '#F4F4F9' }}
+                onFocus={e => e.target.style.borderColor = 'rgba(62,201,118,0.3)'}
+                onBlur={e => e.target.style.borderColor = 'transparent'}
+              />
+            </div>
+
+            <button
+              onClick={handleReport}
+              disabled={reporting}
+              className="w-full py-4 rounded-2xl font-bold text-white text-base flex items-center justify-center shadow-lg"
+              style={{ background: reporting ? '#9ca3af' : '#ef4444', boxShadow: '0 8px 24px rgba(239,68,68,0.3)' }}
+            >
+              {reporting ? 'Sedang mengirim...' : 'Kirim Laporan Resmi'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Bottom CTA */}
       <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-5 pb-8 pt-4 glass-panel z-50">
