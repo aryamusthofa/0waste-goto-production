@@ -1,6 +1,7 @@
 {
   "name": "0-waste-shop-food",
   "version": "1.0.0",
+  "type": "module",
   "description": "0 Waste Shop Food — Trusted Circular Marketplace",
   "main": "index.js",
   "scripts": {
