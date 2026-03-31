@@ -9,6 +9,8 @@
   --text-muted: #6b7280;
   --danger: #ef4444;
   --warning: #f59e0b;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 * {
@@ -16,8 +18,15 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--bg);
   color: var(--text);
   margin: 0;
@@ -25,12 +34,15 @@ body {
   max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
+  min-height: 100dvh;
   position: relative;
   overflow-x: hidden;
+  padding-top: var(--safe-top);
 }
 
 #root {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -39,30 +51,110 @@ body {
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Safe area */
-.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+/* Safe areas */
+.safe-bottom { padding-bottom: calc(var(--safe-bottom) + 16px); }
+.safe-top { padding-top: calc(var(--safe-top) + 16px); }
+
+/* Touch targets minimum 44px */
+button, a, [role="button"] {
+  min-height: 44px;
+  touch-action: manipulation;
+}
+
+/* Small input buttons exempt from 44px rule */
+button.compact, .compact button {
+  min-height: auto;
+}
+
+/* Prevent zoom on input focus (iOS) */
+input, textarea, select {
+  font-size: 16px !important;
+}
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
+}
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.9) translateY(10px); }
+  50% { opacity: 1; transform: scale(1.02) translateY(-2px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 @keyframes pulse-green {
   0%, 100% { box-shadow: 0 0 0 0 rgba(62,201,118,0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(62,201,118,0); }
+  50% { box-shadow: 0 0 0 10px rgba(62,201,118,0); }
 }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
-@keyframes countdown {
-  from { width: 100%; }
-  to { width: 0%; }
+@keyframes scaleHover {
+  to { transform: scale(1.03); }
 }
 
-.animate-fade-in { animation: fadeIn 0.3s ease forwards; }
+.animate-fade-in { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-pop-in { animation: popIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 .animate-pulse-green { animation: pulse-green 2s infinite; }
 .spinner { animation: spin 0.8s linear infinite; }
+
+/* Staggered Animations */
+.stagger-1 { animation-delay: 50ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 150ms; }
+.stagger-4 { animation-delay: 200ms; }
+.stagger-5 { animation-delay: 250ms; }
+
+/* Utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+.glass-dark {
+  background: linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%);
+}
+.shadow-soft {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 4px rgba(0, 0, 0, 0.02);
+}
+.shadow-float {
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* Scroll snap for horizontal lists */
+.snap-carousel {
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+.snap-item {
+  scroll-snap-align: center;
+}
+.snap-start {
+  scroll-snap-align: start;
+}
 
 /* Chat bubbles */
 .bubble-user { border-radius: 20px 20px 4px 20px; }
 .bubble-bot { border-radius: 20px 20px 20px 4px; }
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 360px) {
+  body { font-size: 14px; }
+}
+
+/* Landscape safety */
+@media (orientation: landscape) and (max-height: 500px) {
+  body { max-width: 100%; }
+}
+
+/* Selection color */
+::selection {
+  background: rgba(62,201,118,0.25);
+  color: #1a1a2e;
+}

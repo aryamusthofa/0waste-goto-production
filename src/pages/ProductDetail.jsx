@@ -80,13 +80,14 @@ export default function ProductDetail({ navigate, params }) {
           style={{ height: 280 }}
           onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600'}
         />
+        <div className="absolute inset-0 glass-dark pointer-events-none" style={{ height: 120 }}></div>
         {/* Back button */}
         <button
           onClick={() => navigate('home')}
-          className="absolute top-12 left-4 w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
+          className="absolute top-12 left-4 w-10 h-10 rounded-full flex items-center justify-center transition-transform hover:scale-105"
+          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)' }}
         >
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#1a1a2e" strokeWidth={2.5}>
+          <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#ffffff" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
@@ -94,15 +95,15 @@ export default function ProductDetail({ navigate, params }) {
         <button
           onClick={toggleWishlist}
           disabled={wishlistLoading}
-          className="absolute top-12 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all"
-          style={{ background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(8px)' }}
+          className="absolute top-12 right-4 w-10 h-10 rounded-full flex items-center justify-center transition-all hover:scale-105"
+          style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(12px)' }}
         >
           {wishlistLoading ? (
             <div className="w-4 h-4 rounded-full spinner"
-              style={{ border: '2px solid #ef4444', borderTopColor: 'transparent' }} />
+              style={{ border: '2px solid #ffffff', borderTopColor: 'transparent' }} />
           ) : (
-            <svg width="20" height="20" fill={wishlisted ? '#ef4444' : 'none'} viewBox="0 0 24 24"
-              stroke={wishlisted ? '#ef4444' : '#1a1a2e'} strokeWidth={2}>
+            <svg width="20" height="20" fill={wishlisted ? '#ef4444' : 'rgba(0,0,0,0.4)'} viewBox="0 0 24 24"
+              stroke={wishlisted ? '#ef4444' : '#ffffff'} strokeWidth={wishlisted ? 0 : 2}>
               <path strokeLinecap="round" strokeLinejoin="round"
                 d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
@@ -117,21 +118,21 @@ export default function ProductDetail({ navigate, params }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 px-4 pt-5">
-        <h1 className="text-xl font-black mb-1" style={{ color: '#1a1a2e' }}>{product.name}</h1>
+      <div className="flex-1 px-4 pt-6 bg-white relative -mt-6 rounded-t-3xl shadow-float animate-slide-up stagger-1 pb-10">
+        <h1 className="text-[22px] leading-tight font-black mb-2" style={{ color: '#1a1a2e' }}>{product.name}</h1>
 
         {/* Badges */}
-        <div className="flex flex-wrap gap-2 mb-4">
+        <div className="flex flex-wrap gap-2 mb-5">
           {product.is_halal && (
-            <span className="px-2 py-0.5 rounded-lg text-white text-xs font-bold"
+            <span className="px-2.5 py-1 rounded-xl text-white text-xs font-bold"
               style={{ background: '#059669' }}>{t('halal')}</span>
           )}
-          <span className="px-2 py-0.5 rounded-lg text-white text-xs font-bold flex items-center gap-1"
+          <span className="px-2.5 py-1 rounded-xl text-white text-xs font-bold flex items-center gap-1 shadow-soft"
             style={{ background: '#1a1a2e' }}>
             🛡️ {t('anti_basi_verified')}
           </span>
           {timeLeft && (
-            <span className="px-2 py-0.5 rounded-lg text-white text-xs font-bold"
+            <span className="px-2.5 py-1 rounded-xl text-white text-xs font-bold shadow-soft"
               style={{ background: urgencyColor }}>
               ⏳ {timeLeft} {t('left')}
             </span>
@@ -139,8 +140,8 @@ export default function ProductDetail({ navigate, params }) {
         </div>
 
         {/* Price */}
-        <div className="flex items-baseline gap-3 mb-1">
-          <span className="text-2xl font-black" style={{ color: '#1a1a2e' }}>
+        <div className="flex items-baseline gap-3 mb-1 animate-slide-up stagger-2">
+          <span className="text-[28px] font-black" style={{ color: '#1a1a2e' }}>
             Rp {product.discount_price?.toLocaleString('id')}
           </span>
           {discount > 0 && (
@@ -152,20 +153,20 @@ export default function ProductDetail({ navigate, params }) {
         <p className="text-sm text-gray-500 mb-4">Stok: {product.quantity || product.stock || 1} tersisa</p>
 
         {product.description && (
-          <p className="text-sm text-gray-600 leading-relaxed mb-5">{product.description}</p>
+          <p className="text-[15px] text-gray-600 leading-relaxed mb-6 animate-slide-up stagger-3">{product.description}</p>
         )}
 
         {/* Qty selector */}
-        <div className="flex items-center gap-4 mb-5">
-          <span className="text-sm font-bold text-gray-700">Jumlah:</span>
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between p-4 rounded-2xl mb-6 shadow-soft animate-slide-up stagger-3" style={{ background: '#F9FAFB' }}>
+          <span className="text-sm font-bold text-gray-700">Jumlah Pembelian</span>
+          <div className="flex items-center gap-4 bg-white p-1 rounded-xl shadow-sm">
             <button onClick={() => setQty(q => Math.max(1, q - 1))}
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xl"
-              style={{ background: '#F4F4F9', color: '#1a1a2e' }}>−</button>
+              className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl hover:bg-gray-50 active:scale-95 transition-all"
+              style={{ color: '#1a1a2e' }}>−</button>
             <span className="font-black text-lg w-6 text-center">{qty}</span>
             <button onClick={() => setQty(q => q + 1)}
-              className="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xl"
-              style={{ background: '#3ec976', color: '#fff' }}>+</button>
+              className="w-10 h-10 rounded-lg flex items-center justify-center font-black text-xl active:scale-95 transition-all"
+              style={{ background: '#3ec976', color: '#fff', boxShadow: '0 2px 8px rgba(62,201,118,0.3)' }}>+</button>
           </div>
         </div>
 
@@ -190,8 +191,7 @@ export default function ProductDetail({ navigate, params }) {
       </div>
 
       {/* Bottom CTA */}
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-4 pb-8 pt-4 bg-white"
-        style={{ boxShadow: '0 -4px 20px rgba(0,0,0,0.08)' }}>
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] px-5 pb-8 pt-4 glass-panel z-50">
         <button
           onClick={() => {
             if (!user) { navigate('login'); return }

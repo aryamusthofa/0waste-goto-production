@@ -9,6 +9,10 @@ export default function Register({ navigate }) {
   const [password, setPassword] = useState('')
   const [confirmPw, setConfirmPw] = useState('')
   const [role, setRole] = useState('customer')
+  const [storeName, setStoreName] = useState('')
+  const [businessType, setBusinessType] = useState('restaurant')
+  const [storePhone, setStorePhone] = useState('')
+  const [storeAddress, setStoreAddress] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -19,6 +23,7 @@ export default function Register({ navigate }) {
     if (!email || !/\S+@\S+\.\S+/.test(email)) return t('err_invalid_email')
     if (!password || password.length < 6) return t('err_password_short')
     if (password !== confirmPw) return t('err_password_match')
+    if (role === 'partner' && !storeName.trim()) return 'Nama toko wajib diisi untuk akun partner.'
     return null
   }
 
@@ -38,6 +43,12 @@ export default function Register({ navigate }) {
         full_name: fullName,
         role,
         is_verified: false,
+        partner_status: role === 'partner' ? 'pending' : 'none',
+        store_name: role === 'partner' ? storeName.trim() : null,
+        store_slug: role === 'partner' ? storeName.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + Date.now().toString(36).slice(-4) : null,
+        business_type: role === 'partner' ? businessType : null,
+        store_phone: role === 'partner' ? storePhone.trim() || null : null,
+        store_address: role === 'partner' ? storeAddress.trim() || null : null,
         created_at: new Date().toISOString(),
       })
     }
@@ -52,6 +63,11 @@ export default function Register({ navigate }) {
           style={{ background: 'rgba(62,201,118,0.15)' }}>✅</div>
         <h2 className="text-2xl font-black mb-3" style={{ color: '#1a1a2e' }}>Berhasil Daftar!</h2>
         <p className="text-gray-500 mb-8">{t('email_verification_sent')}</p>
+        {role === 'partner' && (
+          <p className="text-xs text-amber-600 mb-4">
+            Akun partner kamu masuk antrian verifikasi developer terlebih dahulu sebelum bisa jualan.
+          </p>
+        )}
         <button onClick={() => navigate('login')}
           className="w-full py-4 rounded-2xl font-bold text-white"
           style={{ background: '#3ec976' }}>
@@ -111,6 +127,75 @@ export default function Register({ navigate }) {
               ))}
             </div>
           </div>
+
+          {role === 'partner' && (
+            <>
+              <div>
+                <label className="text-xs font-extrabold text-gray-700 mb-1.5 block uppercase tracking-wide">
+                  Nama Toko
+                </label>
+                <input
+                  type="text"
+                  value={storeName}
+                  onChange={e => setStoreName(e.target.value)}
+                  placeholder="Contoh: GreenBite Surplus Store"
+                  className="w-full px-4 text-sm font-medium outline-none"
+                  style={{ height: 52, background: '#F4F4F9', borderRadius: 24, border: '1.5px solid transparent', color: '#1a1a2e' }}
+                  onFocus={e => e.target.style.borderColor = '#3ec976'}
+                  onBlur={e => e.target.style.borderColor = 'transparent'}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-extrabold text-gray-700 mb-1.5 block uppercase tracking-wide">
+                    Tipe Usaha
+                  </label>
+                  <select
+                    value={businessType}
+                    onChange={e => setBusinessType(e.target.value)}
+                    className="w-full px-4 text-sm font-medium outline-none"
+                    style={{ height: 52, background: '#F4F4F9', borderRadius: 24, border: '1.5px solid transparent', color: '#1a1a2e' }}
+                  >
+                    <option value="restaurant">Restaurant</option>
+                    <option value="cafe">Cafe</option>
+                    <option value="hotel">Hotel</option>
+                    <option value="catering">Catering</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-extrabold text-gray-700 mb-1.5 block uppercase tracking-wide">
+                    No. HP Toko
+                  </label>
+                  <input
+                    type="text"
+                    value={storePhone}
+                    onChange={e => setStorePhone(e.target.value)}
+                    placeholder="08xxxx"
+                    className="w-full px-4 text-sm font-medium outline-none"
+                    style={{ height: 52, background: '#F4F4F9', borderRadius: 24, border: '1.5px solid transparent', color: '#1a1a2e' }}
+                    onFocus={e => e.target.style.borderColor = '#3ec976'}
+                    onBlur={e => e.target.style.borderColor = 'transparent'}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-extrabold text-gray-700 mb-1.5 block uppercase tracking-wide">
+                  Alamat Toko
+                </label>
+                <textarea
+                  value={storeAddress}
+                  onChange={e => setStoreAddress(e.target.value)}
+                  rows={3}
+                  placeholder="Alamat lengkap untuk verifikasi"
+                  className="w-full px-4 py-3 text-sm font-medium outline-none resize-none"
+                  style={{ background: '#F4F4F9', borderRadius: 16, border: '1.5px solid transparent', color: '#1a1a2e' }}
+                  onFocus={e => e.target.style.borderColor = '#3ec976'}
+                  onBlur={e => e.target.style.borderColor = 'transparent'}
+                />
+              </div>
+            </>
+          )}
 
           {[
             { label: t('full_name'), value: fullName, set: setFullName, type: 'text', placeholder: 'Nama Lengkap' },

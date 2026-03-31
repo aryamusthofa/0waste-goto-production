@@ -7,3 +7,14 @@ dist/
 android/
 ios/
 .DS_Store
+
+# Backups and sensitive data
+*.sql
+*.json
+!package.json
+!capacitor.config.json
+!composer.json
+*.mjs
+!test_sb.mjs
+!check_db.mjs
+!test_db.mjs

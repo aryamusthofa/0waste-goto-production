@@ -3,10 +3,13 @@ import ReactDOM from 'react-dom/client'
 import './index.css'
 import './i18n'
 import App from './App'
-
-// Reset Token Supabase otomatis untuk menyapu bersih deadlock Error 401
-localStorage.removeItem('sb-ydaidnppdvzwvdhziifc-auth-token')
+import ErrorBoundary from './components/ErrorBoundary'
+import { ToastProvider } from './context/ToastContext'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <App />
+  <ErrorBoundary>
+    <ToastProvider>
+      <App />
+    </ToastProvider>
+  </ErrorBoundary>
 )

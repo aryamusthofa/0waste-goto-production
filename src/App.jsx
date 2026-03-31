@@ -16,10 +16,12 @@ import PartnerDashboard from './pages/PartnerDashboard'
 import Profile from './pages/Profile'
 import EcoChat from './pages/EcoChat'
 import Wishlist from './pages/Wishlist'
+import AdminConsole from './pages/AdminConsole'
+import Legal from './pages/Legal'
 
-const NO_NAV_PAGES = ['onboarding', 'welcome', 'login', 'register', 'forgot-password', 'product', 'checkout', 'chat']
-const AUTH_PAGES = ['home', 'orders', 'wishlist', 'partner', 'profile']
-const NAV_PAGES = { home: 'home', orders: 'orders', wishlist: 'wishlist', partner: 'partner', profile: 'profile' }
+const NO_NAV_PAGES = ['onboarding', 'welcome', 'login', 'register', 'forgot-password', 'product', 'checkout', 'legal']
+const AUTH_PAGES = ['home', 'orders', 'wishlist', 'chat', 'partner', 'profile', 'admin']
+const NAV_PAGES = { home: 'home', orders: 'orders', wishlist: 'wishlist', chat: 'chat', partner: 'partner', profile: 'profile', admin: 'admin' }
 
 function AppContent() {
   const { user, profile, loading } = useAuth()
@@ -81,6 +83,8 @@ function AppContent() {
       case 'profile': return <Profile navigate={navigate} />
       case 'chat': return <EcoChat navigate={navigate} />
       case 'wishlist': return <Wishlist navigate={navigate} />
+      case 'admin': return <AdminConsole navigate={navigate} />
+      case 'legal': return <Legal navigate={navigate} params={params} />
       default: return <Home navigate={navigate} />
     }
   }

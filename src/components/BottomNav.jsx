@@ -27,28 +27,33 @@ const ShopIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
   </svg>
 )
+const ShieldIcon = ({ filled }) => (
+  <svg width="22" height="22" fill={filled ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={filled ? 0 : 2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M12 3l7 3v6c0 5-3.5 8-7 9-3.5-1-7-4-7-9V6l7-3z" />
+  </svg>
+)
 
 export default function BottomNav({ active, navigate }) {
   const { profile } = useAuth()
   const { t } = useTranslation()
-  const isPartner = profile?.role === 'partner' && profile?.is_verified
+  const isPartner = profile?.role === 'partner' && profile?.partner_status === 'approved' && !profile?.is_suspended
+  const isSuperAdmin = Boolean(profile?.is_super_admin)
 
   const items = [
-    { key: 'home', label: t('all'), icon: <HomeIcon /> },
-    { key: 'orders', label: t('orders'), icon: <BagIcon /> },
+    { key: 'home', label: 'Beranda', icon: <HomeIcon /> },
+    { key: 'orders', label: 'Pesanan', icon: <BagIcon /> },
     { key: 'wishlist', label: 'Wishlist', icon: <HeartIcon /> },
-    ...(isPartner ? [{ key: 'partner', label: 'Partner', icon: <ShopIcon /> }] : []),
-    { key: 'profile', label: t('profile'), icon: <UserIcon /> },
+    { key: 'chat', label: 'Eco AI', icon: <span className="text-[18px]">🌿</span> },
+    ...(isPartner ? [{ key: 'partner', label: 'Mitra', icon: <ShopIcon /> }] : []),
+    ...(isSuperAdmin ? [{ key: 'admin', label: 'Admin', icon: <ShieldIcon /> }] : []),
+    { key: 'profile', label: 'Profil', icon: <UserIcon /> },
   ]
 
   return (
     <nav
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[398px] z-50"
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[398px] z-50 glass-panel shadow-float animate-slide-up"
       style={{
-        background: 'rgba(255,255,255,0.95)',
-        backdropFilter: 'blur(12px)',
         borderRadius: '24px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08)',
         padding: '8px 4px',
       }}
     >
@@ -57,13 +62,15 @@ export default function BottomNav({ active, navigate }) {
           <button
             key={item.key}
             onClick={() => navigate(item.key)}
-            className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-2xl transition-all duration-200 min-w-[44px]"
+            className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-[20px] transition-all duration-300 min-w-[50px] ${active === item.key ? 'scale-105' : 'scale-100 hover:scale-105'}`}
             style={{
               color: active === item.key ? '#3ec976' : '#9ca3af',
-              background: active === item.key ? 'rgba(62,201,118,0.1)' : 'transparent',
+              background: active === item.key ? 'rgba(62,201,118,0.12)' : 'transparent',
             }}
           >
-            {item.icon}
+            <div className="transition-transform duration-300 transform">
+              {item.icon}
+            </div>
             <span className="text-[10px] font-semibold">{item.label}</span>
           </button>
         ))}

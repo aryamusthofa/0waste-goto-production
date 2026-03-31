@@ -26,12 +26,10 @@ export default function Checkout({ navigate, params }) {
 
     try {
       const { data, error: rpcErr } = await supabase.rpc('place_order', {
-        p_customer_id: user.id,
         p_product_id:  product.id,
         p_qty:         qty,
         p_method:      method,
         p_payment:     paymentMethod,
-        p_total:       total,
       })
 
       if (rpcErr) throw new Error(rpcErr.message)

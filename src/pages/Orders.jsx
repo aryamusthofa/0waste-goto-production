@@ -135,7 +135,6 @@ export default function Orders({ navigate }) {
   const handleCancel = async (orderId) => {
     const { data, error } = await supabase.rpc('cancel_order', {
       p_order_id: orderId,
-      p_user_id:  user.id,
     })
     const result = typeof data === 'string' ? JSON.parse(data) : data
     if (!error && result?.success) {

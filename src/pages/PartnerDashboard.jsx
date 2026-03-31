@@ -126,6 +126,22 @@ export default function PartnerDashboard({ navigate }) {
     }
   }
 
+  if (profile?.is_suspended) return (
+    <div className="flex flex-col min-h-screen items-center justify-center pb-28 px-6">
+      <div className="text-5xl mb-4">⛔</div>
+      <p className="font-bold text-lg text-center mb-2" style={{ color: '#1a1a2e' }}>Akun Ditangguhkan</p>
+      <p className="text-gray-500 text-sm text-center mb-6">
+        Akses partner ditangguhkan sementara. Hubungi dukungan untuk klarifikasi.
+      </p>
+      <button onClick={() => navigate('home')}
+        className="px-8 py-3 rounded-2xl font-bold text-white"
+        style={{ background: '#3ec976' }}>
+        Kembali ke Beranda
+      </button>
+    </div>
+  )
+
+  // Partner access gate
   if (!user || (profile && profile.role !== 'partner')) return (
     <div className="flex flex-col min-h-screen items-center justify-center pb-28 px-6">
       <div className="text-5xl mb-4">🏪</div>
@@ -135,6 +151,22 @@ export default function PartnerDashboard({ navigate }) {
         className="px-8 py-3 rounded-2xl font-bold text-white"
         style={{ background: '#3ec976' }}>
         {t('sign_in')}
+      </button>
+    </div>
+  )
+
+  if (profile?.role === 'partner' && profile?.partner_status !== 'approved') return (
+    <div className="flex flex-col min-h-screen items-center justify-center pb-28 px-6">
+      <div className="text-5xl mb-4">🕒</div>
+      <p className="font-bold text-lg text-center mb-2" style={{ color: '#1a1a2e' }}>Verifikasi Partner Belum Selesai</p>
+      <p className="text-gray-500 text-sm text-center mb-6">
+        Status saat ini: <span className="font-semibold">{profile?.partner_status || 'pending'}</span>.
+        Setelah disetujui developer, fitur CRUD listing akan aktif.
+      </p>
+      <button onClick={() => navigate('home')}
+        className="px-8 py-3 rounded-2xl font-bold text-white"
+        style={{ background: '#3ec976' }}>
+        Kembali ke Beranda
       </button>
     </div>
   )

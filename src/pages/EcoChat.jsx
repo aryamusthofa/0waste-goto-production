@@ -7,7 +7,7 @@ const QUICK_PROMPTS_KEYS = ['quick_prompt_1', 'quick_prompt_2', 'quick_prompt_3'
 // Fallback responses jika tidak ada API key
 const FALLBACK = {
   default: [
-    'Selamat datang di 0 Waste Shop Food! Saya Zera. Tambahkan API key di .env untuk AI penuh. Ada yang bisa saya bantu?',
+    'Selamat datang di 0 Waste Shop Food! Saya Zera. Aktifkan Supabase Edge Function eco-chat untuk AI penuh. Ada yang bisa saya bantu?',
     'Setiap produk di 0waste melalui verifikasi Anti-Basi untuk memastikan keamanan konsumen.',
     'Tips: Selalu cek label "⏳ Anti-Basi" sebelum membeli. Badge ini menjamin produk masih optimal.',
   ],
@@ -67,8 +67,8 @@ export default function EcoChat({ navigate }) {
       setMessages(m => [...m, { role: 'bot', text: reply, ts: new Date() }])
       setHistory([...newHistory, { role: 'assistant', content: reply }])
     } catch (err) {
-      const errText = err.message === 'NO_KEY'
-        ? 'Tambahkan API key di .env untuk AI penuh.'
+      const errText = err.message === 'NO_BACKEND_AI'
+        ? 'Konfigurasi AI backend belum aktif. Jalankan Supabase Edge Function eco-chat.'
         : `Gagal menghubungi AI: ${err.message}`
       setError(errText)
       const fallback = fallbackReply(trimmed)
@@ -119,8 +119,8 @@ export default function EcoChat({ navigate }) {
         <div className="mx-4 mt-3 px-4 py-3 rounded-xl text-xs"
           style={{ background: 'rgba(245,158,11,0.1)', color: '#b45309', border: '1px solid rgba(245,158,11,0.2)' }}>
           <span className="font-bold">Demo Mode</span> — Tambahkan{' '}
-          <code style={{ background: 'rgba(0,0,0,0.06)', padding: '1px 4px', borderRadius: 4 }}>VITE_GROQ_API_KEY</code>
-          {' '}di <code style={{ background: 'rgba(0,0,0,0.06)', padding: '1px 4px', borderRadius: 4 }}>.env</code> untuk AI sungguhan.
+          <code style={{ background: 'rgba(0,0,0,0.06)', padding: '1px 4px', borderRadius: 4 }}>supabase functions deploy eco-chat</code>
+          {' '}dan set secret <code style={{ background: 'rgba(0,0,0,0.06)', padding: '1px 4px', borderRadius: 4 }}>GEMINI_API_KEY</code> untuk AI sungguhan.
         </div>
       )}
 

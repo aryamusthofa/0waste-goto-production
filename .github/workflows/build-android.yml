@@ -1,0 +1,51 @@
+name: Build Android APK (Opsi B)
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 18
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Create Dummy ENV
+      run: |
+        echo "VITE_SUPABASE_URL=https://ydaidnppdvzwvdhziifc.supabase.co" >> .env
+        echo "VITE_SUPABASE_ANON_KEY=placeholder" >> .env
+        echo "VITE_AI_PROVIDER=gemini" >> .env
+
+    - name: Build Web Target
+      run: npm run build
+
+    - name: Setup Java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    - name: Capacitor Sync
+      run: npx cap sync android
+
+    - name: Build APK
+      working-directory: android
+      run: ./gradlew assembleDebug
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: 0Waste-Shop-App-APK
+        path: android/app/build/outputs/apk/debug/app-debug.apk
