@@ -3,6 +3,11 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useTimeLeft } from '../hooks/useTimeLeft'
 
+// UI Atoms
+import Card from '../components/ui/Card'
+import Badge from '../components/ui/Badge'
+import Input from '../components/ui/Input'
+
 const categories = [
   { key: 'all', labelKey: 'all', icon: '🌿' },
   { key: 'new', labelKey: 'new', icon: '✨' },
@@ -22,13 +27,13 @@ function ProductCard({ product, index = 0, navigate }) {
     ? Math.round(((product.original_price - product.discount_price) / product.original_price) * 100)
     : 0
 
-  const urgencyColor = urgency === 'critical' ? '#ef4444' : urgency === 'warning' ? '#f59e0b' : '#3ec976'
-  const staggerClass = index < 5 ? `stagger-${index + 1}` : ''
+  const urgencyVariant = urgency === 'critical' ? 'danger' : urgency === 'warning' ? 'warning' : 'success'
+  const staggerClass = index < 6 ? `stagger-${index + 1}` : ''
 
   return (
-    <div
-      className={`rounded-3xl overflow-hidden animate-slide-up ${staggerClass} cursor-pointer hover:scale-[1.02] shadow-soft transition-all duration-300`}
-      style={{ background: '#fff' }}
+    <Card
+      padding="p-0"
+      className={`relative overflow-hidden animate-slide-up ${staggerClass}`}
       onClick={() => navigate('product', { product })}
     >
       <div className="relative">
@@ -36,59 +41,78 @@ function ProductCard({ product, index = 0, navigate }) {
           src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=400'}
           alt={product.name}
           className="w-full object-cover"
-          style={{ height: 140 }}
+          style={{ height: 160 }}
           onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=400'}
         />
-        {discount > 0 && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-lg text-white text-xs font-black"
-            style={{ background: '#3ec976' }}>
-            -{discount}% {t('discount')}
-          </div>
-        )}
-        {product.is_halal && (
-          <div className="absolute top-2 right-2 px-2 py-0.5 rounded-lg text-white text-[10px] font-black"
-            style={{ background: '#059669' }}>
-            {t('halal')}
-          </div>
-        )}
-        {timeLeft && !isExpired && (
-          <div className="absolute bottom-2 left-2 px-2 py-0.5 rounded-lg text-white text-xs font-bold flex items-center gap-1"
-            style={{ background: urgencyColor }}>
-            ⏳ {timeLeft}
-          </div>
-        )}
-      </div>
-      <div className="p-3">
-        <p className="font-bold text-sm leading-tight mb-1" style={{ color: '#1a1a2e' }}
-          title={product.name}>
-          {product.name.length > 28 ? product.name.slice(0, 27) + '…' : product.name}
-        </p>
-        <div className="flex items-baseline gap-1.5 mb-2">
-          <span className="font-black text-base" style={{ color: '#1a1a2e' }}>
-            Rp {product.discount_price?.toLocaleString('id')}
-          </span>
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           {discount > 0 && (
-            <span className="text-xs text-gray-400 line-through">
-              Rp {product.original_price?.toLocaleString('id')}
-            </span>
+            <Badge variant="dark" className="px-2 py-0.5 bg-[#3ec976] !text-white !text-[9px]">
+               -{discount}% {t('discount')}
+            </Badge>
           )}
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-xs text-gray-400">🏷️ {product.category || 'surplus'}</span>
+        <div className="absolute top-2 right-2">
+           {product.is_halal && (
+             <Badge variant="success" className="px-2 py-0.5 !text-[9px]" icon="🕌">
+               {t('halal')}
+             </Badge>
+           )}
+        </div>
+        {timeLeft && !isExpired && (
+          <div className="absolute bottom-2 left-2">
+            <Badge variant={urgencyVariant} className="px-2 py-0.5 !text-[9px]" icon="⏳">
+              {timeLeft}
+            </Badge>
+          </div>
+        )}
+      </div>
+      
+      <div className="p-4">
+        <p className="font-black text-sm leading-tight mb-2 text-[#1a1a2e]" title={product.name}>
+          {product.name.length > 32 ? product.name.slice(0, 31) + '…' : product.name}
+        </p>
+        
+        <div className="flex flex-col gap-0.5 mb-3">
+          <p className="font-black text-lg text-[#1a1a2e]">
+            Rp {product.discount_price?.toLocaleString('id')}
+          </p>
+          {discount > 0 && (
+            <p className="text-xs text-gray-400 line-through font-bold">
+              Rp {product.original_price?.toLocaleString('id')}
+            </p>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between mt-auto">
+          <Badge variant="info" className="!px-2 !py-0.5 !text-[8px] !tracking-widest">
+             {product.category || 'surplus'}
+          </Badge>
           {product.status === 'sold_out' ? (
-            <span className="text-xs text-red-400 font-semibold">{t('sold_out')}</span>
+            <span className="text-[10px] text-red-500 font-black uppercase tracking-widest">{t('sold_out')}</span>
           ) : (
-            <button
-              className="px-3 py-1.5 rounded-xl text-white text-xs font-bold"
-              style={{ background: '#3ec976' }}
-              onClick={e => { e.stopPropagation(); navigate('product', { product }) }}
-            >
-              {t('add_to_cart')}
-            </button>
+            <div className="w-8 h-8 rounded-xl bg-[#3ec976]/10 flex items-center justify-center text-[#3ec976] font-black pointer-events-none">
+              +
+            </div>
           )}
         </div>
       </div>
-    </div>
+    </Card>
+  )
+}
+
+function SkeletonCard() {
+  return (
+    <Card padding="p-0" className="overflow-hidden animate-pulse">
+      <div className="w-full bg-gray-100" style={{ height: 160 }}></div>
+      <div className="p-4">
+        <div className="h-4 bg-gray-100 rounded-lg w-3/4 mb-3"></div>
+        <div className="h-6 bg-gray-50 rounded-lg w-1/2 mb-4"></div>
+        <div className="flex justify-between items-center">
+          <div className="h-4 bg-gray-50 rounded-lg w-1/4"></div>
+          <div className="h-8 w-8 bg-gray-100 rounded-xl"></div>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -101,29 +125,22 @@ export default function Home({ navigate }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const timeout = setTimeout(() => { controller.abort() }, 3000);
-
     const load = async () => {
       setLoading(true)
       try {
         let query = supabase.from('products').select('*').neq('status', 'sold_out').order('created_at', { ascending: false }).abortSignal(controller.signal)
         if (search) query = query.ilike('name', `%${search}%`)
         const { data, error } = await query
-
-        if (error) {
-          console.error('Supabase fetch products error:', error)
-        }
+        if (error) console.error('Supabase fetch products error:', error)
         setProducts(data || [])
       } catch (err) {
-        console.error('Crash in fetching products:', err)
         setProducts([])
       } finally {
-        clearTimeout(timeout)
         setLoading(false)
       }
     }
     load()
-    return () => { clearTimeout(timeout); controller.abort(); }
+    return () => controller.abort()
   }, [search])
 
   const filtered = activeCategory === 'all'
@@ -132,142 +149,141 @@ export default function Home({ navigate }) {
       ? [...products].sort((a, b) => new Date(b.created_at) - new Date(a.created_at)).slice(0, 10)
       : products.filter(p => p.category?.toLowerCase() === activeCategory)
 
-  const expiringSoon = products.filter(p => p.expiry_time).slice(0, 4)
+  const expiringSoon = products.filter(p => p.expiry_time).slice(0, 5)
 
   return (
-    <div className="flex flex-col min-h-screen pb-28" style={{ background: '#F4F4F9' }}>
-      {/* Header */}
-      <div className="px-4 pt-14 pb-4" style={{ background: '#ffffff' }}>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-xs text-gray-400 font-medium tracking-wide mb-0.5">📍 {t('delivery_location')}</p>
-            <p className="font-black text-lg" style={{ color: '#1a1a2e' }}>Jakarta Selatan</p>
+    <div className="flex flex-col min-h-screen pb-32 bg-[#F9FAFB]">
+      {/* Header & Search */}
+      <div className="px-6 pt-14 pb-6 bg-white rounded-b-[40px] shadow-[0_8px_32px_rgba(0,0,0,0.02)]">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex flex-col">
+            <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 pl-0.5">
+              📍 {t('delivery_location')}
+            </span>
+            <div className="flex items-center gap-1.5">
+               <span className="font-black text-[22px] text-[#1a1a2e]">Sudirman, JKT</span>
+               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#1a1a2e" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+               </svg>
+            </div>
           </div>
-          <div className="w-12 h-12 rounded-[20px] overflow-hidden flex items-center justify-center text-xl shadow-soft"
-            style={{ background: 'rgba(62,201,118,0.15)', border: '2px solid rgba(62,201,118,0.4)' }}>
+          <Card 
+            className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-soft"
+            padding="p-0"
+            style={{ background: 'rgba(62,201,118,0.12)', border: '2px solid rgba(62,201,118,0.2)' }}
+          >
             🌿
-          </div>
+          </Card>
         </div>
-        {/* Search */}
-        <div className="relative">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" width="18" height="18"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+
+        <Input 
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder={t('search_placeholder')}
+          icon={<svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder={t('search_placeholder')}
-            className="w-full pl-10 pr-4 text-sm outline-none"
-            style={{
-              height: 44, background: '#F4F4F9', borderRadius: 22,
-              border: 'none', color: '#1a1a2e'
-            }}
-          />
-        </div>
+          </svg>}
+          autoComplete="off"
+        />
       </div>
 
-      {/* Categories */}
-      <div className="px-4 py-3 bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">
-        <div className="flex gap-3 overflow-x-auto no-scrollbar snap-carousel py-1">
+      {/* Categories Bar */}
+      <div className="px-6 py-5 sticky top-0 z-30 bg-[#F9FAFB]/80 backdrop-blur-md">
+        <div className="flex gap-4 overflow-x-auto no-scrollbar py-1">
           {categories.map(cat => (
             <button
               key={cat.key}
               onClick={() => setActiveCategory(cat.key)}
-              className="snap-start flex items-center gap-1.5 px-4 py-2 rounded-[20px] whitespace-nowrap text-sm font-bold flex-shrink-0 transition-all duration-300 hover:scale-105"
+              className="px-5 py-2.5 rounded-[22px] whitespace-nowrap text-sm font-black transition-all duration-300 flex items-center gap-2"
               style={{
-                background: activeCategory === cat.key ? '#3ec976' : '#F4F4F9',
-                color: activeCategory === cat.key ? '#fff' : '#6b7280',
-                boxShadow: activeCategory === cat.key ? '0 4px 16px rgba(62,201,118,0.3)' : 'none',
+                background: activeCategory === cat.key ? '#3ec976' : 'white',
+                color: activeCategory === cat.key ? 'white' : '#1a1a2e',
+                boxShadow: activeCategory === cat.key ? '0 8px 24px rgba(62,201,118,0.25)' : '0 4px 12px rgba(0,0,0,0.03)',
               }}
             >
-              <span>{cat.icon}</span>
+              <span className="text-lg">{cat.icon}</span>
               <span>{t(cat.labelKey)}</span>
             </button>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 px-4 pt-4">
-        {/* Expires Soon section */}
+      <div className="px-6 flex flex-col gap-8">
+        {/* Horizontal Sections */}
         {expiringSoon.length > 0 && activeCategory === 'all' && !search && (
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="font-black text-base" style={{ color: '#1a1a2e' }}>
-                ⏰ {t('expires_soon')}
+          <div className="animate-fade-in">
+            <div className="flex items-center justify-between mb-4 px-1">
+              <h2 className="font-black text-lg text-[#1a1a2e] flex items-center gap-2">
+                <span className="text-xl">⏰</span> {t('expires_soon')}
               </h2>
-              <button className="text-xs font-semibold" style={{ color: '#3ec976' }}>{t('show_all')}</button>
+              <button className="text-xs font-black uppercase tracking-widest text-[#3ec976]">{t('show_all')}</button>
             </div>
-            <div className="flex gap-4 overflow-x-auto no-scrollbar snap-carousel pb-3 pt-1">
+            <div className="flex gap-5 overflow-x-auto no-scrollbar pb-4 -mx-1 px-1">
               {expiringSoon.map((product, idx) => (
-                <div
+                <Card
                   key={product.id}
+                  padding="p-0"
+                  className="flex-shrink-0 w-44 overflow-hidden"
                   onClick={() => navigate('product', { product })}
-                  className={`snap-start flex-shrink-0 w-40 rounded-[24px] overflow-hidden cursor-pointer hover:scale-105 shadow-soft transition-all duration-300 animate-slide-up ${idx < 5 ? `stagger-${idx + 1}` : ''}`}
-                  style={{ background: '#fff' }}
                 >
                   <div className="relative">
                     <img
                       src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=200'}
                       alt={product.name}
                       className="w-full object-cover"
-                      style={{ height: 90 }}
-                      onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=200'}
+                      style={{ height: 110 }}
                     />
-                    <div className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded-lg text-white text-[10px] font-bold"
-                      style={{ background: '#ef4444' }}>
+                    <Badge variant="danger" className="absolute bottom-2 left-2 !px-2 !py-0.5 !text-[8px]">
                       Hampir Habis
-                    </div>
+                    </Badge>
                   </div>
-                  <div className="p-2">
-                    <p className="text-xs font-bold leading-tight mb-1" style={{ color: '#1a1a2e' }}>
-                      {product.name.length > 18 ? product.name.slice(0, 17) + '…' : product.name}
+                  <div className="p-3">
+                    <p className="text-xs font-black text-[#1a1a2e] leading-tight mb-2">
+                      {product.name.length > 20 ? product.name.slice(0, 19) + '…' : product.name}
                     </p>
-                    <p className="text-xs font-black" style={{ color: '#3ec976' }}>
+                    <p className="text-sm font-black text-[#3ec976]">
                       Rp {product.discount_price?.toLocaleString('id')}
                     </p>
-                    <button
-                      className="mt-1.5 w-full py-1 rounded-lg text-white text-[11px] font-bold"
-                      style={{ background: '#3ec976' }}
-                      onClick={e => { e.stopPropagation(); navigate('product', { product }) }}
-                    >
-                      {t('add_to_cart')}
-                    </button>
                   </div>
-                </div>
+                </Card>
               ))}
             </div>
           </div>
         )}
 
-        {/* Main grid */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-black text-base" style={{ color: '#1a1a2e' }}>
-            {activeCategory === 'all' ? '🌿 Semua Produk' : `${categories.find(c => c.key === activeCategory)?.icon} ${t(activeCategory)}`}
-          </h2>
-          <span className="text-xs text-gray-400">{filtered.length} item</span>
-        </div>
+        {/* Home Feed Grid */}
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="font-black text-lg text-[#1a1a2e]">
+              {activeCategory === 'all' ? '🌿 ' + t('all') : categories.find(c => c.key === activeCategory)?.icon + ' ' + t(activeCategory)}
+            </h2>
+            <Badge variant="info" className="!px-2 !py-0.5 !text-[9px]">
+               {filtered.length} Items Nearby
+            </Badge>
+          </div>
 
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="w-10 h-10 border-3 border-t-transparent rounded-full spinner"
-              style={{ border: '3px solid #3ec976', borderTopColor: 'transparent' }} />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-3">🌿</div>
-            <p className="text-gray-500 font-medium">
-              {search ? 'Tidak ada produk ditemukan.' : 'Belum ada produk di kategori ini.'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-            {filtered.map((product, i) => (
-              <ProductCard key={product.id} product={product} navigate={navigate} index={i} />
-            ))}
-          </div>
-        )}
+          {loading ? (
+            <div className="grid grid-cols-2 gap-5">
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+              <SkeletonCard />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+              <div className="text-6xl mb-6">🏜️</div>
+              <p className="text-gray-400 font-bold max-w-[200px]">
+                {search ? 'Kami tidak menemukan apa pun untuk pencarian ini.' : 'Belum ada produk di kategori ini.'}
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-5">
+              {filtered.map((product, i) => (
+                <ProductCard key={product.id} product={product} navigate={navigate} index={i} />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

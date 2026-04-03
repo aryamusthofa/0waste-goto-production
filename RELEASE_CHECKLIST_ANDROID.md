@@ -12,15 +12,16 @@
 
 ## Functional gate (must pass)
 
-- [ ] Register buyer works.
-- [ ] Register partner sets `partner_status=pending`.
-- [ ] Unapproved partner cannot CRUD products.
-- [ ] Approved partner can CRUD products.
-- [ ] Checkout place/cancel order RPC works with correct qty restock.
-- [ ] Admin console can suspend/delete with reason codes.
-- [ ] EcoChat works via Gemini API direct.
-- [ ] Wishlist add/remove works.
-- [ ] Profile delete account works.
+- [x] Register buyer works.
+- [x] Register partner sets `partner_status=pending`.
+- [x] Unapproved partner cannot CRUD products.
+- [x] Approved partner can CRUD products.
+- [x] Checkout place/cancel order RPC works with correct qty restock.
+- [x] Admin console can suspend/delete with reason codes.
+- [x] Community reporting system works (submit & resolve).
+- [x] EcoChat works via Supabase Edge Functions.
+- [x] Wishlist add/remove works.
+- [x] Profile delete account works.
 
 ## Build gate (must pass)
 

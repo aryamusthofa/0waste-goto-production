@@ -2,111 +2,123 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 
-const STATUS = {
-  pending:   { bg: 'rgba(245,158,11,0.1)',  color: '#b45309', label: '⏳ Menunggu',   canCancel: true  },
-  completed: { bg: 'rgba(62,201,118,0.1)',  color: '#15803d', label: '✅ Selesai',    canCancel: false },
-  cancelled: { bg: 'rgba(239,68,68,0.1)',   color: '#dc2626', label: '❌ Dibatalkan', canCancel: false },
+// UI Atoms
+import Card from '../components/ui/Card'
+import Badge from '../components/ui/Badge'
+import Button from '../components/ui/Button'
+import Input from '../components/ui/Input'
+
+const STATUS_CONFIG = {
+  pending:   { variant: 'warning', label: '⏳ Menunggu',   canCancel: true  },
+  completed: { variant: 'success', label: '✅ Selesai',    canCancel: false },
+  cancelled: { variant: 'danger',  label: '❌ Dibatalkan', canCancel: false },
 }
 
 function OrderCard({ order, onCancel }) {
   const { t } = useTranslation()
-  const s = STATUS[order.status] || STATUS.pending
+  const { show } = useToast()
+  
+  const s = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending
   const [cancelling, setCancelling] = useState(false)
   const [confirmCancel, setConfirmCancel] = useState(false)
 
-  const handleCancel = async () => {
-    if (!confirmCancel) { setConfirmCancel(true); return }
+  const handleCancelClick = async () => {
+    if (!confirmCancel) { 
+      setConfirmCancel(true)
+      return 
+    }
+    
     setCancelling(true)
-    await onCancel(order.id)
-    setCancelling(false)
-    setConfirmCancel(false)
+    try {
+      const success = await onCancel(order.id)
+      if (success) {
+        show('Pesanan berhasil dibatalkan.', 'success')
+      } else {
+        show('Gagal membatalkan pesanan.', 'error')
+      }
+    } catch (e) {
+      show('Terjadi kesalahan sistem.', 'error')
+    } finally {
+      setCancelling(false)
+      setConfirmCancel(false)
+    }
   }
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden"
-      style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
-      {/* Status bar */}
-      <div className="px-4 py-2 flex items-center justify-between"
-        style={{ background: s.bg }}>
-        <span className="text-xs font-bold" style={{ color: s.color }}>{s.label}</span>
-        <span className="text-xs text-gray-400">
-          {new Date(order.created_at).toLocaleDateString('id-ID', {
-            day: 'numeric', month: 'short', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-          })}
-        </span>
+    <Card padding="p-0" className="overflow-hidden border border-gray-50 flex flex-col">
+      {/* Top Status Bar */}
+      <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
+         <Badge variant={s.variant} className="!px-2 !py-0.5 !text-[9px]">{s.label}</Badge>
+         <span className="text-[10px] font-black text-gray-400">
+           {new Date(order.created_at).toLocaleDateString('id-ID', {
+             day: 'numeric', month: 'short', year: 'numeric',
+             hour: '2-digit', minute: '2-digit'
+           })}
+         </span>
       </div>
 
-      {/* Product info */}
-      <div className="p-4">
-        <div className="flex items-start gap-3">
-          <img
-            src={order.products?.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=80'}
-            alt={order.products?.name}
-            className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
-            onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=80'}
-          />
-          <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm leading-tight truncate" style={{ color: '#1a1a2e' }}>
-              {order.products?.name || 'Produk dihapus'}
-            </p>
-            <p className="text-xs text-gray-400 mt-0.5">
-              {order.method === 'pickup' ? '🏪 Pickup' : '🛵 Delivery'}
-              {' · '}
-              {order.payment_method === 'digital' ? '💳 Digital' : '💵 COD'}
-            </p>
-            <div className="flex items-center gap-2 mt-2">
-              <span className="font-black text-base" style={{ color: '#1a1a2e' }}>
-                Rp {order.total_price?.toLocaleString('id')}
-              </span>
-              {order.products?.is_halal && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md text-white"
-                  style={{ background: '#059669' }}>HALAL</span>
+      <div className="p-5 flex flex-col gap-4">
+        {/* Product Details */}
+        <div className="flex gap-4">
+           <img
+             src={order.products?.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=100'}
+             alt={order.products?.name}
+             className="w-16 h-16 rounded-xl object-cover border border-gray-50"
+             onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=100'}
+           />
+           <div className="flex-1 min-w-0">
+             <p className="font-black text-sm text-[#1a1a2e] truncate leading-tight">
+               {order.products?.name || 'Produk dihapus'}
+             </p>
+             <p className="text-[10px] font-bold text-gray-400 mt-1 uppercase tracking-tight">
+               {order.method === 'pickup' ? '🏪 Pickup' : '🛵 Delivery'}
+               {' · '}
+               {order.payment_method === 'digital' ? '💳 Digital' : '💵 COD'}
+             </p>
+             <div className="flex items-center gap-3 mt-2">
+                <span className="text-base font-black text-[#1a1a2e]">
+                   Rp {order.total_price?.toLocaleString('id')}
+                </span>
+                {order.products?.is_halal && (
+                   <Badge variant="success" className="!px-1.5 !py-0 !text-[8px]">HALAL</Badge>
+                )}
+             </div>
+           </div>
+        </div>
+
+        {/* Footer Order Info */}
+        <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+           <p className="text-[10px] font-black text-gray-300 font-mono tracking-widest">
+             #{order.id?.slice(0, 12).toUpperCase()}
+           </p>
+           
+           <div className="flex gap-2">
+              {s.canCancel && (
+                <Button 
+                  variant={confirmCancel ? 'danger' : 'ghost'} 
+                  onClick={handleCancelClick}
+                  loading={cancelling}
+                  fullWidth={false}
+                  className="!h-10 !px-4 !text-xs !rounded-xl"
+                >
+                  {confirmCancel ? 'Tap Konfirmasi' : 'Batalkan'}
+                </Button>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Order ID */}
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-[11px] text-gray-400 font-mono">
-            ID: #{order.id?.slice(0, 18)}...
-          </p>
-        </div>
-
-        {/* Actions */}
-        <div className="flex gap-2 mt-3">
-          {/* Cancel — hanya jika pending */}
-          {s.canCancel && (
-            <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1"
-              style={{
-                background: confirmCancel ? 'rgba(239,68,68,0.12)' : '#F4F4F9',
-                color: confirmCancel ? '#dc2626' : '#6b7280',
-                border: confirmCancel ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid transparent',
-              }}
-            >
-              {cancelling ? (
-                <div className="w-3 h-3 rounded-full spinner"
-                  style={{ border: '2px solid #dc2626', borderTopColor: 'transparent' }} />
-              ) : confirmCancel ? '⚠️ Tap lagi untuk konfirmasi' : 'Batalkan'}
-            </button>
-          )}
-
-          {/* Hubungi mitra — placeholder */}
-          <button
-            onClick={() => {}}
-            className="px-4 py-2.5 rounded-xl text-xs font-bold flex-shrink-0"
-            style={{ background: 'rgba(62,201,118,0.1)', color: '#15803d' }}
-          >
-            💬 Hubungi
-          </button>
+              
+              <Button 
+                variant="secondary" 
+                fullWidth={false}
+                className="!h-10 !px-4 !text-xs !rounded-xl"
+                icon="💬"
+              >
+                Chat
+              </Button>
+           </div>
         </div>
       </div>
-    </div>
+    </Card>
   )
 }
 
@@ -141,99 +153,92 @@ export default function Orders({ navigate }) {
       setOrders(prev => prev.map(o =>
         o.id === orderId ? { ...o, status: 'cancelled' } : o
       ))
+      return true
     }
+    return false
   }
 
   const filtered = orders.filter(o => {
     const matchFilter = filter === 'all' || o.status === filter
     const matchSearch = !search ||
       o.products?.name?.toLowerCase().includes(search.toLowerCase()) ||
-      o.id?.includes(search)
+      o.id?.toLowerCase().includes(search.toLowerCase())
     return matchFilter && matchSearch
   })
 
   const countByStatus = (s) => orders.filter(o => o.status === s).length
 
   if (!user) return (
-    <div className="flex flex-col min-h-screen items-center justify-center pb-28 px-6" style={{ background: '#F4F4F9' }}>
-      <div className="text-5xl mb-4">🔐</div>
-      <p className="font-bold text-lg text-center mb-2" style={{ color: '#1a1a2e' }}>Login untuk melihat pesanan</p>
-      <p className="text-gray-500 text-sm text-center mb-6">Masuk ke akun kamu untuk melihat riwayat pesanan.</p>
-      <button onClick={() => navigate('login')}
-        className="px-8 py-3 rounded-2xl font-bold text-white"
-        style={{ background: '#3ec976' }}>
-        {t('sign_in')}
-      </button>
+    <div className="flex flex-col min-h-screen items-center justify-center p-6 bg-white text-center">
+      <div className="text-6xl mb-8">🔐</div>
+      <h2 className="text-2xl font-black text-[#1a1a2e] mb-2">Riwayat Terkunci</h2>
+      <p className="text-gray-400 font-medium mb-10 max-w-[240px]">Silakan masuk ke akun kamu untuk melihat riwayat belanja.</p>
+      <Button onClick={() => navigate('login')}>Masuk Sekarang</Button>
     </div>
   )
 
   return (
-    <div className="flex flex-col min-h-screen pb-28" style={{ background: '#F4F4F9' }}>
+    <div className="flex flex-col min-h-screen pb-32 bg-[#F9FAFB]">
       {/* Header */}
-      <div className="px-4 pt-14 pb-3 bg-white">
-        <h1 className="font-black text-xl mb-3" style={{ color: '#1a1a2e' }}>{t('order_history')}</h1>
+      <div className="px-6 pt-14 pb-6 bg-white rounded-b-[40px] shadow-[0_8px_32px_rgba(0,0,0,0.02)]">
+        <h1 className="font-black text-[24px] text-[#1a1a2e] mb-6">{t('order_history')}</h1>
 
-        {/* Search */}
-        <div className="relative mb-3">
-          <svg className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" width="16" height="16"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text" value={search} onChange={e => setSearch(e.target.value)}
+        <div className="flex flex-col gap-6">
+          <Input 
+            value={search} 
+            onChange={e => setSearch(e.target.value)}
             placeholder={t('search_orders')}
-            className="w-full pl-9 pr-4 text-sm outline-none"
-            style={{ height: 40, background: '#F4F4F9', borderRadius: 20, color: '#1a1a2e' }}
+            icon={<svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>}
           />
-        </div>
 
-        {/* Filter tabs */}
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {[
-            { key: 'all',       label: `Semua (${orders.length})` },
-            { key: 'pending',   label: `⏳ Menunggu (${countByStatus('pending')})` },
-            { key: 'completed', label: `✅ Selesai (${countByStatus('completed')})` },
-            { key: 'cancelled', label: `❌ Batal (${countByStatus('cancelled')})` },
-          ].map(f => (
-            <button key={f.key} onClick={() => setFilter(f.key)}
-              className="px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap flex-shrink-0 transition-all"
-              style={{
-                background: filter === f.key ? '#3ec976' : '#F4F4F9',
-                color: filter === f.key ? '#fff' : '#6b7280',
-              }}>
-              {f.label}
-            </button>
-          ))}
+          {/* Filter tabs */}
+          <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+            {[
+              { key: 'all',       label: `Semua (${orders.length})` },
+              { key: 'pending',   label: `⏳ Menunggu (${countByStatus('pending')})` },
+              { key: 'completed', label: `✅ Selesai (${countByStatus('completed')})` },
+              { key: 'cancelled', label: `❌ Batal (${countByStatus('cancelled')})` },
+            ].map(f => (
+              <button 
+                key={f.key} 
+                onClick={() => setFilter(f.key)}
+                className="px-4 py-2.5 rounded-[18px] text-[11px] font-black uppercase tracking-widest whitespace-nowrap flex-shrink-0 transition-all duration-300"
+                style={{
+                  background: filter === f.key ? '#1a1a2e' : '#F4F4F9',
+                  color: filter === f.key ? 'white' : '#6b7280',
+                  boxShadow: filter === f.key ? '0 8px 24px rgba(26,26,46,0.2)' : 'none',
+                }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Orders list */}
-      <div className="flex-1 px-4 pt-4">
+      <div className="flex-1 px-6 pt-6">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-10 h-10 rounded-full spinner"
-              style={{ border: '3px solid #3ec976', borderTopColor: 'transparent' }} />
-            <p className="text-sm text-gray-400">Memuat pesanan...</p>
+          <div className="flex flex-col items-center justify-center py-20 gap-4 animate-fade-in text-center">
+            <div className="w-10 h-10 border-4 border-[#3ec976]/20 border-t-[#3ec976] rounded-full animate-spin" />
+            <p className="text-xs font-black text-gray-300 uppercase tracking-widest">Sinkronisasi Data...</p>
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-5xl mb-3">📦</div>
-            <p className="font-bold text-base mb-1" style={{ color: '#1a1a2e' }}>
-              {filter === 'all' ? 'Belum ada pesanan' : `Tidak ada pesanan "${filter}"`}
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
+            <div className="text-6xl mb-6">📦</div>
+            <p className="font-black text-lg text-[#1a1a2e] mb-2">
+              {filter === 'all' ? 'Belum Ada Pesanan' : 'Tidak Ditemukan'}
             </p>
-            <p className="text-sm text-gray-400 mb-6">
-              {filter === 'all' ? 'Mulai berbelanja sekarang!' : 'Coba filter lain.'}
+            <p className="text-sm font-medium text-gray-400 mb-10 max-w-[200px]">
+              {filter === 'all' ? 'Sepertinya kamu belum mulai berinteraksi dengan circular economy.' : 'Coba ubah filter atau kata kunci pencarian kamu.'}
             </p>
             {filter === 'all' && (
-              <button onClick={() => navigate('home')}
-                className="px-8 py-3 rounded-2xl font-bold text-white"
-                style={{ background: '#3ec976' }}>
-                Jelajahi Produk
-              </button>
+              <Button onClick={() => navigate('home')} fullWidth={false} className="px-10">Jelajahi Marketplace</Button>
             )}
           </div>
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-5 animate-slide-up">
             {filtered.map(order => (
               <OrderCard key={order.id} order={order} onCancel={handleCancel} />
             ))}

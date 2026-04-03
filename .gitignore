@@ -17,6 +17,9 @@ dist/
 !check_db.mjs
 !test_db.mjs
 
-# Mobile builds
+# Mobile builds & Keys
 *.apk
 *.zip
+*.jks
+.env.production
+.env.staging

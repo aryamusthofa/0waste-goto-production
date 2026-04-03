@@ -45,6 +45,7 @@ Buka halaman SQL Editor di Dasbor Supabase Anda, kemudian eksekusi skrip-skrip b
 2. `databasesetup4-wishlists.sql`
 3. `databasesetup5-checkout-engine.sql`
 4. `databasesetup6-governance.sql`
+5. `databasesetup7-reporting.sql`
 
 ## Tahap 4: Akun Super-Admin (Master Keys)
 

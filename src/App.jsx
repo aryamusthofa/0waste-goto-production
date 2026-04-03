@@ -1,108 +1,102 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, Suspense, lazy } from 'react'
+import { supabase } from './lib/supabase'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ToastProvider, useToast } from './context/ToastContext'
+
+// Essential non-lazy Components
+import ErrorBoundary from './components/ErrorBoundary'
+
+// Dashboard & UI Core
 import BottomNav from './components/BottomNav'
 
-// Pages
-import Onboarding from './pages/Onboarding'
-import Welcome from './pages/Welcome'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import ForgotPassword from './pages/ForgotPassword'
-import Home from './pages/Home'
-import ProductDetail from './pages/ProductDetail'
-import Checkout from './pages/Checkout'
-import Orders from './pages/Orders'
-import PartnerDashboard from './pages/PartnerDashboard'
-import Profile from './pages/Profile'
-import EcoChat from './pages/EcoChat'
-import Wishlist from './pages/Wishlist'
-import AdminConsole from './pages/AdminConsole'
-import Legal from './pages/Legal'
+// LAZY LOADING ROUTES
+const Home             = lazy(() => import('./pages/Home'))
+const Login            = lazy(() => import('./pages/Login'))
+const Register         = lazy(() => import('./pages/Register'))
+const ProductDetail    = lazy(() => import('./pages/ProductDetail'))
+const Checkout         = lazy(() => import('./pages/Checkout'))
+const Orders           = lazy(() => import('./pages/Orders'))
+const ZeraAI           = lazy(() => import('./pages/EcoChat'))
+const Wishlist         = lazy(() => import('./pages/Wishlist'))
+const ForgotPassword   = lazy(() => import('./pages/ForgotPassword'))
+const Legal            = lazy(() => import('./pages/Legal'))
+const Onboarding       = lazy(() => import('./pages/Onboarding'))
+const Welcome          = lazy(() => import('./pages/Welcome'))
+const PartnerDashboard = lazy(() => import('./pages/PartnerDashboard'))
+const Profile          = lazy(() => import('./pages/Profile'))
+const AdminConsole     = lazy(() => import('./pages/AdminConsole'))
 
-const NO_NAV_PAGES = ['onboarding', 'welcome', 'login', 'register', 'forgot-password', 'product', 'checkout', 'legal']
-const AUTH_PAGES = ['home', 'orders', 'wishlist', 'chat', 'partner', 'profile', 'admin']
-const NAV_PAGES = { home: 'home', orders: 'orders', wishlist: 'wishlist', chat: 'chat', partner: 'partner', profile: 'profile', admin: 'admin' }
-
-function AppContent() {
-  const { user, profile, loading } = useAuth()
-  const [page, setPage] = useState('onboarding')
-  const [params, setParams] = useState({})
-  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false)
-
-  // Redirect after login
-  useEffect(() => {
-    if (!loading && user) {
-      if (['onboarding', 'welcome', 'login', 'register'].includes(page)) {
-        setPage('home')
-      }
-    }
-  }, [user, loading])
-
-  const navigate = (to, p = {}) => {
-    setParams(p)
-    if (to === 'onboarding' && hasSeenOnboarding) {
-      setPage('welcome')
-      return
-    }
-    if (to === 'onboarding') setHasSeenOnboarding(true)
-
-    // Guard: redirect to login if not authed
-    if (AUTH_PAGES.includes(to) && !user && to !== 'home') {
-      setPage('login')
-      return
-    }
-    setPage(to)
-    window.scrollTo(0, 0)
-  }
-
-  const activeTab = NAV_PAGES[page] || page
-
-  if (loading) return (
-    <div className="flex flex-col min-h-screen items-center justify-center" style={{ background: '#ffffff' }}>
-      <div className="w-20 h-20 rounded-3xl flex items-center justify-center mb-4"
-        style={{ background: '#3ec976', boxShadow: '0 8px 32px rgba(62,201,118,0.35)' }}>
-        <span className="text-4xl">🌿</span>
-      </div>
-      <div className="w-8 h-8 rounded-full spinner mt-4"
-        style={{ border: '3px solid #3ec976', borderTopColor: 'transparent' }} />
-    </div>
-  )
-
-  const renderPage = () => {
-    switch (page) {
-      case 'onboarding': return <Onboarding navigate={navigate} />
-      case 'welcome': return <Welcome navigate={navigate} />
-      case 'login': return <Login navigate={navigate} />
-      case 'register': return <Register navigate={navigate} />
-      case 'forgot-password': return <ForgotPassword navigate={navigate} />
-      case 'home': return <Home navigate={navigate} />
-      case 'product': return <ProductDetail navigate={navigate} params={params} />
-      case 'checkout': return <Checkout navigate={navigate} params={params} />
-      case 'orders': return <Orders navigate={navigate} />
-      case 'partner': return <PartnerDashboard navigate={navigate} />
-      case 'profile': return <Profile navigate={navigate} />
-      case 'chat': return <EcoChat navigate={navigate} />
-      case 'wishlist': return <Wishlist navigate={navigate} />
-      case 'admin': return <AdminConsole navigate={navigate} />
-      case 'legal': return <Legal navigate={navigate} params={params} />
-      default: return <Home navigate={navigate} />
-    }
-  }
-
-  const showNav = !NO_NAV_PAGES.includes(page)
-
+function LoadingScreen() {
   return (
-    <div style={{ background: '#F4F4F9', minHeight: '100vh' }}>
-      {renderPage()}
-      {showNav && <BottomNav active={activeTab} navigate={navigate} />}
+    <div className="flex flex-col min-h-screen items-center justify-center bg-white">
+       <div className="w-12 h-12 border-4 border-[#3ec976]/20 border-t-[#3ec976] rounded-full animate-spin" />
+       <p className="mt-4 text-[10px] font-black text-gray-300 uppercase tracking-widest animate-pulse">
+         Synchronizing 0Waste...
+       </p>
     </div>
   )
 }
 
-export default function App() {
+function MainApp() {
+  const { user, profile, loading: authLoading } = useAuth()
+  const [route, setRoute] = useState('home') // home | login | register | product | checkout | orders | dashboard | profile | admin | zera
+  const [routeParams, setRouteParams] = useState(null)
+
+  const navigate = (to, params = null) => {
+    setRoute(to); setRouteParams(params); window.scrollTo(0, 0)
+  }
+
+  const renderRoute = () => {
+    switch (route) {
+      case 'login':            return <Login navigate={navigate} />
+      case 'register':         return <Register navigate={navigate} />
+      case 'product':          return <ProductDetail navigate={navigate} params={routeParams} />
+      case 'checkout':         return <Checkout navigate={navigate} params={routeParams} />
+      case 'orders':           return <Orders navigate={navigate} />
+      case 'dashboard':        return <PartnerDashboard navigate={navigate} />
+      case 'profile':          return <Profile navigate={navigate} />
+      case 'admin':            return <AdminConsole navigate={navigate} />
+      case 'zera':             return <ZeraAI navigate={navigate} />
+      case 'wishlist':         return <Wishlist navigate={navigate} />
+      case 'forgot-password':  return <ForgotPassword navigate={navigate} />
+      case 'legal':            return <Legal navigate={navigate} />
+      case 'onboarding':       return <Onboarding navigate={navigate} />
+      case 'welcome':          return <Welcome navigate={navigate} />
+      default:                 return <Home navigate={navigate} />
+    }
+  }
+
+  if (authLoading) return <LoadingScreen />
+
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <div className="max-w-[430px] mx-auto min-h-screen relative overflow-hidden bg-[#F9FAFB] shadow-2xl mobile-container-shadow transition-all duration-500">
+      <Suspense fallback={<LoadingScreen />}>
+         {renderRoute()}
+      </Suspense>
+
+      {/* Persistent Bottom UI */}
+      {route !== 'login' && route !== 'register' && (
+        <BottomNav 
+          navigate={navigate} 
+          activeRoute={route} 
+          role={profile?.role} 
+          isSuperAdmin={profile?.is_super_admin}
+        />
+      )}
+    </div>
   )
 }
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <ToastProvider>
+          <MainApp />
+        </ToastProvider>
+      </AuthProvider>
+    </ErrorBoundary>
+  )
+}
+
+export default App

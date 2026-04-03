@@ -1,12 +1,20 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '../context/AuthContext'
+import { useToast } from '../context/ToastContext'
 import { supabase } from '../lib/supabase'
 import i18n from '../i18n'
+
+// UI Atoms
+import Card from '../components/ui/Card'
+import Button from '../components/ui/Button'
+import Badge from '../components/ui/Badge'
 
 export default function Profile({ navigate }) {
   const { t } = useTranslation()
   const { user, profile, signOut } = useAuth()
+  const { show } = useToast()
+  
   const [lang, setLang] = useState(i18n.language)
   const [toggles, setToggles] = useState({
     profileVisible: true,
@@ -17,53 +25,59 @@ export default function Profile({ navigate }) {
     emailSummary: true,
   })
 
+  const [deleteConfirm, setDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   const toggleSwitch = (key) => setToggles(t => ({ ...t, [key]: !t[key] }))
 
   const handleLang = (l) => {
     i18n.changeLanguage(l)
     setLang(l)
+    show(t('language_changed'), 'success')
   }
 
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
-  const [deleting, setDeleting] = useState(false)
-
   const handleLogout = async () => {
+    // We'll use a standard confirmation instead of window.confirm for production
     if (window.confirm(t('logout_confirm'))) {
-      await signOut()
+      try {
+        await signOut()
+        show('Berhasil keluar.', 'info')
+      } catch (e) {
+        show('Gagal keluar: ' + e.message, 'error')
+      }
     }
   }
 
   const handleDeleteAccount = async () => {
     if (!deleteConfirm) {
       setDeleteConfirm(true)
+      show('Tekan sekali lagi untuk konfirmasi penghapusan akun.', 'warning')
       return
     }
-    if (!window.confirm('PERHATIAN: Akun akan dihapus permanen. Lanjutkan?')) {
-      setDeleteConfirm(false)
-      return
-    }
+    
     setDeleting(true)
     try {
-      await supabase.from('wishlists').delete().eq('user_id', user.id)
-      await supabase.from('profiles').delete().eq('id', user.id)
+      const { data, error } = await supabase.rpc('user_self_delete')
+      const result = typeof data === 'string' ? JSON.parse(data) : data
+      
+      if (error || !result.success) throw new Error(error?.message || result.error)
+      
+      show('Akun berhasil dihapus. Sampai jumpa lagi!', 'success')
       await signOut()
     } catch (err) {
-      alert('Gagal menghapus akun: ' + err.message)
+      show('Gagal menghapus akun: ' + (err.message || 'Error tidak dikenal.'), 'error')
+      setDeleteConfirm(false)
     } finally {
       setDeleting(false)
-      setDeleteConfirm(false)
     }
   }
 
   if (!user) return (
-    <div className="flex flex-col min-h-screen items-center justify-center pb-28 px-6">
-      <div className="text-5xl mb-4">👤</div>
-      <p className="font-bold text-lg text-center mb-2" style={{ color: '#1a1a2e' }}>Login untuk melihat profil</p>
-      <button onClick={() => navigate('login')}
-        className="px-8 py-3 rounded-2xl font-bold text-white mt-4"
-        style={{ background: '#3ec976' }}>
-        {t('sign_in')}
-      </button>
+    <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-white text-center">
+       <div className="text-7xl mb-8 animate-pop-in">👤</div>
+       <h2 className="text-2xl font-black text-[#1a1a2e] mb-2 leading-tight">Masuk ke Profil</h2>
+       <p className="text-gray-400 font-medium mb-12 max-w-[240px]">Kelola pesanan, riwayat donasi, dan pengaturan akun kamu.</p>
+       <Button onClick={() => navigate('login')} className="max-w-[200px]">Sign In</Button>
     </div>
   )
 
@@ -75,218 +89,207 @@ export default function Profile({ navigate }) {
   ]
 
   return (
-    <div className="flex flex-col min-h-screen pb-28" style={{ background: '#F4F4F9' }}>
-      <div className="px-4 pt-14 pb-6 bg-white shadow-sm sticky top-0 z-30 animate-slide-up">
-        <div className="flex items-center gap-4">
-          <div
-            className="w-16 h-16 rounded-[22px] flex items-center justify-center text-3xl flex-shrink-0 select-none shadow-soft"
-            style={{ background: 'rgba(62,201,118,0.15)' }}
-          >
-            {profile?.avatar_url
-              ? <img src={profile.avatar_url} className="w-full h-full rounded-[22px] object-cover" alt="avatar" />
-              : '🌿'
-            }
-          </div>
-          <div className="flex-1">
-            <p className="font-black text-lg leading-tight mb-0.5" style={{ color: '#1a1a2e' }}>
-              {profile?.full_name || user.email?.split('@')[0]}
-            </p>
-            <p className="text-[13px] text-gray-500">{user.email}</p>
-            <span className="text-[10px] font-bold px-2.5 py-1 rounded-xl mt-2 inline-block shadow-sm"
-              style={{
-                background: profile?.is_verified ? 'rgba(62,201,118,0.1)' : 'rgba(245,158,11,0.1)',
-                color: profile?.is_verified ? '#3ec976' : '#f59e0b'
-              }}>
-              {profile?.partner_status === 'approved'
-                ? '✅ Partner Disetujui'
-                : profile?.partner_status === 'pending' || profile?.partner_status === 'under_review'
-                  ? '⏳ Verifikasi Partner'
-                  : profile?.is_verified
-                    ? '✅ Terverifikasi'
-                    : '👤 Akun Customer'}
-            </span>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-[52px] h-[52px] rounded-2xl flex flex-col items-center justify-center shadow-soft hover:scale-105 transition-transform cursor-pointer"
-              style={{ background: 'linear-gradient(135deg, #3ec976 0%, #28a35a 100%)' }}>
-              <span className="text-xl font-black text-white">{ecoScore}</span>
-              <span className="text-[9px] text-white opacity-90 font-medium">ECO</span>
-            </div>
-          </div>
+    <div className="flex flex-col min-h-screen pb-32 bg-[#F9FAFB]">
+      {/* Header Profile */}
+      <div className="px-6 pt-16 pb-10 bg-white rounded-b-[48px] shadow-[0_8px_32px_rgba(0,0,0,0.02)] relative z-20">
+        <div className="flex items-center gap-5">
+           <div className="relative group">
+              <Card className="w-20 h-20 rounded-[28px] overflow-hidden flex items-center justify-center text-4xl shadow-soft" padding="p-0">
+                {profile?.avatar_url
+                  ? <img src={profile.avatar_url} className="w-full h-full object-cover" alt="avatar" />
+                  : <span className="select-none animate-pulse">🌿</span>
+                }
+              </Card>
+              <div className="absolute -bottom-1 -right-1 w-7 h-7 bg-[#3ec976] rounded-xl border-4 border-white flex items-center justify-center text-[10px] text-white shadow-sm">
+                ⭐
+              </div>
+           </div>
+           
+           <div className="flex-1 min-w-0">
+              <h1 className="text-[22px] font-black text-[#1a1a2e] leading-tight truncate">
+                {profile?.full_name || user.email?.split('@')[0]}
+              </h1>
+              <p className="text-xs font-bold text-gray-400 mt-0.5 truncate uppercase tracking-tight">{user.email}</p>
+              
+              <div className="flex gap-2 mt-3">
+                 <Badge variant={profile?.is_verified ? 'success' : 'warning'} className="!px-2.5 !py-0.5 !text-[9px] uppercase tracking-wider">
+                   {profile?.partner_status === 'approved' ? 'Partner Premium' : profile?.is_verified ? 'Verified Citizen' : 'Community Member'}
+                 </Badge>
+              </div>
+           </div>
+
+           <div className="flex flex-col items-center">
+              <div className="w-14 h-14 rounded-2xl flex flex-col items-center justify-center shadow-soft hover:scale-105 transition-all duration-300 cursor-pointer text-white"
+                style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #3ec976 100%)' }}>
+                <span className="text-lg font-black">{ecoScore}</span>
+                <span className="text-[8px] font-black uppercase opacity-80 tracking-widest">ECO</span>
+              </div>
+           </div>
         </div>
       </div>
 
-      <div className="px-4 pt-4 flex flex-col gap-4">
-        <div className="bg-white rounded-[24px] p-5 shadow-soft animate-slide-up stagger-1">
-          <p className="font-black text-[15px] mb-3" style={{ color: '#1a1a2e' }}>{t('trust_store')}</p>
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: t('items_rescued'), value: '1.24', icon: '♻️' },
-              { label: t('items_shared'), value: '324', icon: '🤝' },
-              { label: t('co2_saved'), value: '2.89kg', icon: '🌍' },
-            ].map(stat => (
-              <div key={stat.label} className="flex flex-col items-center p-3 rounded-2xl border border-gray-50 bg-[#F9FAFB] hover:scale-105 transition-transform duration-300">
-                <span className="text-xl mb-1">{stat.icon}</span>
-                <span className="font-black text-[15px]" style={{ color: '#1a1a2e' }}>{stat.value}</span>
-                <span className="text-[10px] text-gray-400 text-center leading-tight mt-0.5 font-medium">{stat.label}</span>
+      <div className="px-6 pt-10 flex flex-col gap-8">
+        {/* Eco Stats */}
+        <div className="flex flex-col gap-4">
+           <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-1">Statistik Hijau</h3>
+           <Card padding="p-6">
+              <div className="grid grid-cols-3 gap-6">
+                 {[
+                   { label: t('items_rescued'), value: '1.24', icon: '♻️' },
+                   { label: t('items_shared'), value: '324', icon: '🤝' },
+                   { label: t('co2_saved'), value: '2.89', unit: 'kg', icon: '🌍' },
+                 ].map(stat => (
+                   <div key={stat.label} className="flex flex-col items-center text-center">
+                      <span className="text-2xl mb-3">{stat.icon}</span>
+                      <p className="text-base font-black text-[#1a1a2e]">{stat.value}<span className="text-[10px] ml-0.5">{stat.unit || ''}</span></p>
+                      <p className="text-[9px] font-bold text-gray-400 uppercase leading-tight mt-1">{stat.label}</p>
+                   </div>
+                 ))}
               </div>
-            ))}
-          </div>
+           </Card>
         </div>
 
-        {/* Recent contributions */}
-        <div className="bg-white rounded-[24px] p-5 shadow-soft animate-slide-up stagger-2">
-          <div className="flex items-center justify-between mb-4">
-            <p className="font-black text-[15px]" style={{ color: '#1a1a2e' }}>{t('recent_contributions')}</p>
-            <button className="text-xs font-bold" style={{ color: '#3ec976' }}>See all</button>
-          </div>
-          {contributions.map((c, i) => (
-            <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0 hover:bg-gray-50 rounded-xl transition-colors cursor-pointer px-2 -mx-2">
-              <div className="w-11 h-11 rounded-[16px] flex items-center justify-center text-xl flex-shrink-0"
-                style={{ background: '#F4F4F9' }}>{c.icon}</div>
-              <div>
-                <p className="text-[13px] font-bold" style={{ color: '#1a1a2e' }}>{c.title}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{c.date}</p>
+        {/* Recent Contributions */}
+        <div className="flex flex-col gap-4">
+           <div className="flex items-center justify-between px-1">
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Kontribusi Terakhir</h3>
+              <button className="text-[10px] font-black text-[#3ec976] uppercase tracking-widest">Lihat Semua</button>
+           </div>
+           <Card padding="p-1">
+              <div className="flex flex-col">
+                {contributions.map((c, i) => (
+                  <div key={i} className="flex items-center gap-4 p-4 hover:bg-gray-50 rounded-[20px] transition-colors cursor-pointer group">
+                    <div className="w-11 h-11 bg-white rounded-xl shadow-soft flex items-center justify-center text-xl flex-shrink-0 group-hover:scale-110 transition-transform">{c.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-[#1a1a2e] truncate">{c.title}</p>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mt-0.5">{c.date}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          ))}
+           </Card>
         </div>
 
-        {/* Language */}
-        <div className="bg-white rounded-[24px] p-5 shadow-soft animate-slide-up stagger-2">
-          <p className="font-black text-[15px] mb-3" style={{ color: '#1a1a2e' }}>{t('language')}</p>
-          <div className="flex gap-2">
-            {[
-              { code: 'id', label: '🇮🇩 Bahasa Indonesia' },
-              { code: 'en', label: '🇬🇧 English' },
-            ].map(l => (
-              <button
-                key={l.code}
-                onClick={() => handleLang(l.code)}
-                className="flex-1 py-3 border border-gray-100 rounded-xl text-[13px] font-bold transition-all duration-300 active:scale-95"
-                style={{
-                  background: lang === l.code ? '#3ec976' : '#fff',
-                  color: lang === l.code ? '#fff' : '#6b7280',
-                  boxShadow: lang === l.code ? '0 4px 12px rgba(62,201,118,0.2)' : 'none'
-                }}
-              >
-                {l.label}
-              </button>
-            ))}
-          </div>
+        {/* Global Settings */}
+        <div className="flex flex-col gap-6">
+           <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-1">Pengaturan & Privasi</h3>
+           
+           <div className="flex flex-col gap-4">
+              {/* Language Switch */}
+              <Card padding="p-5" className="flex flex-col gap-4">
+                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">Bahasa Aplikasi</p>
+                 <div className="flex gap-2">
+                    {[
+                      { code: 'id', label: '🇮🇩 ID' },
+                      { code: 'en', label: '🇬🇧 EN' },
+                    ].map(l => (
+                      <button
+                        key={l.code}
+                        onClick={() => handleLang(l.code)}
+                        className="flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 border-2"
+                        style={{
+                          background: lang === l.code ? '#1a1a2e' : '#F9FAFB',
+                          color: lang === l.code ? '#fff' : '#6b7280',
+                          borderColor: lang === l.code ? '#1a1a2e' : 'transparent'
+                        }}
+                      >
+                        {l.label}
+                      </button>
+                    ))}
+                 </div>
+              </Card>
+
+              {/* Toggles (Privacy & Notifications) */}
+              <Card padding="p-2">
+                 <div className="flex flex-col">
+                    {[
+                      { key: 'profileVisible', label: t('profile_visibility'), icon: '👁️' },
+                      { key: 'allowContact', label: t('allow_partner_contact'), icon: '📞' },
+                      { key: 'pushNotif', label: t('push_notifications'), icon: '🔔' },
+                      { key: 'emailSummary', label: t('email_summaries'), icon: '📧' },
+                    ].map((item, idx) => (
+                      <div key={item.key} className={`flex items-center justify-between p-4 ${idx !== 3 ? 'border-b border-gray-50' : ''}`}>
+                         <div className="flex items-center gap-3">
+                            <span className="text-lg">{item.icon}</span>
+                            <span className="text-sm font-bold text-gray-700">{item.label}</span>
+                         </div>
+                         <button
+                           onClick={() => toggleSwitch(item.key)}
+                           className="w-11 h-6 rounded-full transition-all duration-300 relative flex-shrink-0"
+                           style={{ background: toggles[item.key] ? '#3ec976' : '#E2E8F0' }}
+                         >
+                           <div className="w-[18px] h-[18px] rounded-full bg-white absolute top-[3px] transition-all duration-300 shadow-sm"
+                             style={{ left: toggles[item.key] ? '22px' : '3px' }} />
+                         </button>
+                      </div>
+                    ))}
+                 </div>
+              </Card>
+
+              {/* Support & Legal Links */}
+              <Card padding="p-2">
+                 <div className="flex flex-col">
+                    {[
+                      { label: t('support_chat'), icon: '💬', action: () => navigate('zera') },
+                      { label: t('privacy_policy'), icon: '🔒', action: () => navigate('legal', { type: 'privacy' }) },
+                      { label: t('terms_of_service'), icon: '📄', action: () => navigate('legal', { type: 'terms' }) },
+                    ].map((item, idx) => (
+                      <button key={idx} onClick={item.action} className={`flex items-center justify-between p-5 group text-left ${idx !== 2 ? 'border-b border-gray-50' : ''}`}>
+                         <div className="flex items-center gap-3">
+                            <span className="text-lg">{item.icon}</span>
+                            <span className="text-sm font-bold text-gray-700">{item.label}</span>
+                         </div>
+                         <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" className="text-gray-300 group-hover:text-[#3ec976] group-hover:translate-x-1 transition-all">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" />
+                         </svg>
+                      </button>
+                    ))}
+                 </div>
+              </Card>
+
+              {/* Developer / Admin Console */}
+              {profile?.is_super_admin && (
+                <Card className="border-2 border-dashed border-[#3ec976]/30 bg-[#3ec976]/5" padding="p-4">
+                   <Button 
+                     variant="success" 
+                     className="!h-14 !rounded-2xl !uppercase !tracking-[0.15em] !font-black !text-[11px]"
+                     onClick={() => navigate('admin')}
+                   >
+                     🔱 Administrator Console
+                   </Button>
+                </Card>
+              )}
+           </div>
         </div>
 
-        {/* Privacy & Verification */}
-        <div className="bg-white rounded-[24px] p-5 shadow-soft animate-slide-up stagger-3">
-          <p className="font-black text-[15px] mb-2" style={{ color: '#1a1a2e' }}>{t('privacy_settings')}</p>
-          <div className="flex flex-col">
-            {[
-              { key: 'profileVisible', label: t('profile_visibility') },
-              { key: 'allowContact', label: t('allow_partner_contact') },
-              { key: 'showContact', label: t('show_contact_details') },
-            ].map(item => (
-              <div key={item.key} className="flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0">
-                <span className="text-[14px] text-gray-700 font-medium">{item.label}</span>
-                <button
-                  onClick={() => toggleSwitch(item.key)}
-                  className="w-12 h-[26px] rounded-full transition-all duration-300 relative flex-shrink-0"
-                  style={{ background: toggles[item.key] ? '#3ec976' : '#e5e7eb' }}
-                >
-                  <div className="w-[22px] h-[22px] rounded-full bg-white absolute top-[2px] transition-all duration-300"
-                    style={{ left: toggles[item.key] ? '24px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                </button>
-              </div>
-            ))}
-          </div>
+        {/* Danger Zone */}
+        <div className="flex flex-col gap-4 mt-4 pb-12">
+           <Button 
+             variant="dark" 
+             className="!h-16 !rounded-[24px] !font-black !text-base"
+             onClick={handleLogout}
+           >
+             📦 Keluar Sesi
+           </Button>
+           
+           <button
+             onClick={handleDeleteAccount}
+             disabled={deleting}
+             className="w-full py-5 rounded-[24px] text-xs font-black uppercase tracking-widest transition-all duration-300"
+             style={{ 
+               background: deleteConfirm ? 'rgba(239,68,68,0.1)' : 'transparent', 
+               color: '#ef4444',
+               border: '2px solid transparent',
+               borderColor: deleteConfirm ? '#ef4444' : 'transparent'
+             }}
+           >
+             {deleting ? 'Processing...' : deleteConfirm ? '⚠️ Tekan lagi untuk Konfirmasi' : 'Hapus Akun Permanen'}
+           </button>
+           
+           <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-widest mt-4">
+              0Waste Shop v1.0.0-production
+           </p>
         </div>
-
-        {/* Notifications */}
-        <div className="bg-white rounded-[24px] p-5 shadow-soft animate-slide-up stagger-3">
-          <p className="font-black text-[15px] mb-2" style={{ color: '#1a1a2e' }}>{t('notifications')}</p>
-          <div className="flex flex-col">
-            {[
-              { key: 'pushNotif', label: t('push_notifications') },
-              { key: 'smsAlerts', label: t('sms_alerts') },
-              { key: 'emailSummary', label: t('email_summaries') },
-            ].map(item => (
-              <div key={item.key} className="flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0">
-                <span className="text-[14px] text-gray-700 font-medium">{item.label}</span>
-                <button
-                  onClick={() => toggleSwitch(item.key)}
-                  className="w-12 h-[26px] rounded-full transition-all duration-300 relative"
-                  style={{ background: toggles[item.key] ? '#3ec976' : '#e5e7eb' }}
-                >
-                  <div className="w-[22px] h-[22px] rounded-full bg-white absolute top-[2px] transition-all duration-300"
-                    style={{ left: toggles[item.key] ? '24px' : '2px', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Support & Legal */}
-        <div className="bg-white rounded-[24px] p-5 shadow-soft animate-slide-up stagger-4">
-          <p className="font-black text-[15px] mb-2" style={{ color: '#1a1a2e' }}>{t('support')}</p>
-          <div className="flex flex-col">
-            {[
-              { label: '💬  ' + t('support_chat'), action: () => navigate('chat') },
-              { label: '📋  ' + t('community_guidelines'), action: () => navigate('legal', { type: 'guidelines' }) },
-              { label: '🔒  ' + t('privacy_policy'), action: () => navigate('legal', { type: 'privacy' }) },
-              { label: '📄  ' + t('terms_of_service'), action: () => navigate('legal', { type: 'terms' }) },
-            ].map((item, i) => (
-              <button key={i} onClick={item.action}
-                className="w-full flex items-center justify-between py-3.5 border-b border-gray-50 last:border-0 active:bg-gray-50 transition-colors text-left">
-                <span className="text-[14px] text-gray-700 font-medium whitespace-pre">{item.label}</span>
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#d1d5db" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* 🔐 Admin Console (Only visible to Super Admins) */}
-        {profile?.is_super_admin && (
-          <div className="bg-white rounded-[24px] p-5 shadow-soft border-2 border-dashed border-green-100 animate-pulse-slow">
-            <p className="font-black text-[15px] mb-2" style={{ color: '#1a1a2e' }}>🔱 Developer Options</p>
-            <button
-              onClick={() => navigate('admin')}
-              className="w-full flex items-center justify-between py-4 px-4 rounded-2xl active:scale-95 transition-all"
-              style={{ background: 'rgba(62,201,118,0.1)', border: '1px solid #3ec976' }}
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-xl">🛠️</span>
-                <span className="text-sm font-bold text-[#1a1a2e]">Buka Admin Console</span>
-              </div>
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#3ec976" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
-            </button>
-          </div>
-        )}
-
-        {/* Logout */}
-        <button
-          onClick={handleLogout}
-          className="w-full py-4 rounded-2xl font-black text-base animate-slide-up stagger-5 active:scale-95 transition-transform"
-          style={{ background: '#1a1a2e', color: '#fff' }}
-        >
-          🚪 {t('logout')}
-        </button>
-
-        {/* Delete account */}
-        <button
-          onClick={handleDeleteAccount}
-          disabled={deleting}
-          className="w-full py-3.5 rounded-[20px] font-bold text-[13px] animate-slide-up stagger-5 active:scale-95 transition-transform"
-          style={{ background: deleteConfirm ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)', color: '#ef4444', border: deleteConfirm ? '1.5px solid rgba(239,68,68,0.3)' : '1.5px solid transparent' }}
-        >
-          {deleting ? 'Sedang menghapus...' : deleteConfirm ? '⚠️ Tekan sekali lagi untuk Konfirmasi' : `🗑️ ${t('delete_account')}`}
-        </button>
-
-        <p className="text-center text-xs text-gray-400 pb-2">
-          © 0 Waste Shop Food • Build for community sharing — 2026
-        </p>
       </div>
     </div>
   )

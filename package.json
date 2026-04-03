@@ -6,12 +6,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build",
+    "build": "vite build --mode production",
     "preview": "vite preview",
     "smoke": "node scripts/smoke-check.mjs",
-    "cap:sync": "vite build && npx cap sync",
-    "cap:android": "vite build && npx cap sync android && npx cap open android",
-    "cap:ios": "vite build && npx cap sync ios && npx cap open ios"
+    "cap:sync": "vite build --mode production && npx cap sync",
+    "cap:android": "vite build --mode production && npx cap sync android && npx cap open android",
+    "cap:ios": "vite build --mode production && npx cap sync ios && npx cap open ios"
   },
   "repository": {
     "type": "git",
@@ -26,6 +26,8 @@
     "@capacitor/core": "^8.3.0",
     "@capacitor/ios": "^8.3.0",
     "@capacitor/preferences": "^8.0.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@supabase/supabase-js": "^2.100.1",
     "i18next": "^25.10.10",
     "pg": "^8.20.0",
