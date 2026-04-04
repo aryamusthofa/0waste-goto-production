@@ -42,7 +42,7 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           echo "::group::NPM Install"
-          npm ci --prefer-offline --no-audit
+          npm install --prefer-offline --no-audit
           echo "::endgroup::"
         continue-on-error: false
 
