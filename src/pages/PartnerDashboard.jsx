@@ -22,13 +22,14 @@ function StatItem({ label, value, variant = 'success', icon }) {
 
 export default function PartnerDashboard({ navigate }) {
   const { t } = useTranslation()
-  const { user, profile } = useAuth()
+  const { user, profile, refreshProfile } = useAuth()
   const { show } = useToast()
   
   const [listings, setListings] = useState([])
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState('listings') // listings | add | orders | alerts
+  const [tab, setTab] = useState('listings') // listings | add | orders | settings | alerts
+  const [updatingStore, setUpdatingStore] = useState(false)
 
   // Add product form
   const [form, setForm] = useState({
@@ -39,6 +40,14 @@ export default function PartnerDashboard({ navigate }) {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  // Store settings form
+  const [storeForm, setStoreForm] = useState({
+    store_name: profile?.store_name || '',
+    store_phone: profile?.store_phone || '',
+    store_address: profile?.store_address || '',
+    business_type: profile?.business_type || 'restaurant'
+  })
 
   useEffect(() => {
     if (!user) return
@@ -129,6 +138,29 @@ export default function PartnerDashboard({ navigate }) {
     }
   }
 
+  const handleUpdateStore = async () => {
+    setUpdatingStore(true)
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          store_name: storeForm.store_name,
+          store_phone: storeForm.store_phone,
+          store_address: storeForm.store_address,
+          business_type: storeForm.business_type
+        })
+        .eq('id', user.id)
+      
+      if (error) throw error
+      show('Pengaturan toko berhasil diperbarui.', 'success')
+      refreshProfile()
+    } catch (err) {
+      show('Gagal memperbarui toko: ' + err.message, 'error')
+    } finally {
+      setUpdatingStore(false)
+    }
+  }
+
   const handleMarkPickedUp = async (orderId) => {
     const { error } = await supabase.from('orders').update({ status: 'completed' }).eq('id', orderId)
     if (!error) {
@@ -182,9 +214,9 @@ export default function PartnerDashboard({ navigate }) {
 
         {/* Stats Row */}
         <div className="flex gap-4">
-           <StatItem label="Aktif" value={stats.active} icon="✅" />
-           <StatItem label="Hampir Exp" value={stats.expiring} icon="⏳" />
-           <StatItem label="Klaim Masuk" value={stats.incoming} icon="📦" />
+           <StatItem label={t('active_listings')} value={stats.active} icon="✅" />
+           <StatItem label={t('eco_impact_meals')} value={orders.filter(o => o.status === 'completed').length} icon="🥗" />
+           <StatItem label={t('eco_impact_co2')} value={(orders.filter(o => o.status === 'completed').length * 0.5).toFixed(1) + ' kg'} icon="🌱" />
         </div>
       </div>
 
@@ -210,6 +242,7 @@ export default function PartnerDashboard({ navigate }) {
             { key: 'listings', label: '📋 Listing', icon: 'Items' },
             { key: 'add', label: '➕ Tambah', icon: 'Product' },
             { key: 'orders', label: '📦 Pesanan', icon: 'Sales' },
+            { key: 'settings', label: '⚙️ Pengaturan', icon: 'Settings' },
             { key: 'alerts', label: '🔔 Alert', icon: 'Safety' },
           ].map(tab_ => (
             <button
@@ -361,15 +394,92 @@ export default function PartnerDashboard({ navigate }) {
                        <Button 
                          onClick={() => handleMarkPickedUp(o.id)}
                          disabled={o.status === 'completed'}
-                         className="!h-10 !px-4 !text-xs !rounded-xl"
+                         className="!h-10 !px-4 !text-xs !rounded-xl flex-1"
                        >
                           {o.status === 'completed' ? 'Selesai' : 'Konfirmasi Diambil'}
                        </Button>
-                       <Button variant="secondary" className="!h-10 !px-4 !text-xs !rounded-xl flex-shrink-0">Dukungan</Button>
+                       <Button 
+                         variant="secondary" 
+                         className="!h-10 !px-4 !text-xs !rounded-xl flex-shrink-0"
+                         onClick={() => {
+                           const msg = t('wa_notify_template', { store: profile?.store_name || '0Waste Partner' })
+                           const phone = o.partner_phone || '' // Assuming user phone is reachable
+                           window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+                         }}
+                       >
+                         💬 WA
+                       </Button>
                     </div>
                  </Card>
                ))}
             </div>
+          )}
+
+          {tab === 'settings' && (
+            <Card padding="p-6" className="flex flex-col gap-6">
+               <h3 className="text-lg font-black text-[#1a1a2e]">Pengaturan Toko</h3>
+               
+               <Input 
+                 label="Nama Toko" 
+                 value={storeForm.store_name} 
+                 onChange={e => setStoreForm(s => ({...s, store_name: e.target.value}))} 
+               />
+               
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="flex flex-col gap-1.5">
+                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">Tipe Bisnis</label>
+                    <select
+                      value={storeForm.business_type}
+                      onChange={e => setStoreForm(s => ({...s, business_type: e.target.value}))}
+                      className="w-full h-[54px] px-5 bg-[#F4F4F9] rounded-[20px] font-bold text-sm outline-none border-[1.5px] border-transparent focus:border-[#3ec976] transition-all"
+                    >
+                      <option value="restaurant">Restaurant</option>
+                      <option value="cafe">Cafe</option>
+                      <option value="hotel">Hotel</option>
+                      <option value="catering">Catering</option>
+                    </select>
+                 </div>
+                 <Input 
+                   label="Telepon Toko" 
+                   value={storeForm.store_phone} 
+                   onChange={e => setStoreForm(s => ({...s, store_phone: e.target.value}))} 
+                 />
+               </div>
+               
+               <div className="flex flex-col gap-1.5">
+                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">Alamat Lokal</label>
+                 <textarea
+                   value={storeForm.store_address}
+                   onChange={e => setStoreForm(s => ({...s, store_address: e.target.value}))}
+                   rows={3}
+                   className="w-full p-5 bg-[#F4F4F9] rounded-[20px] font-bold text-sm outline-none border-[1.5px] border-transparent focus:border-[#3ec976] transition-all resize-none"
+                 />
+               </div>
+               
+               <div className="flex flex-col gap-3 p-5 bg-[#3ec976]/5 rounded-[28px] border border-[#3ec976]/20 mb-2">
+                  <div className="flex items-center justify-between">
+                     <div className="flex flex-col">
+                        <p className="text-[11px] font-black text-[#1a1a2e] uppercase tracking-wider">{t('store_status')}</p>
+                        <p className="text-[10px] font-bold text-gray-400 mt-0.5">{profile?.is_open ? t('store_open') : t('store_closed')}</p>
+                     </div>
+                     <button 
+                       onClick={async () => {
+                          const nextStatus = !profile?.is_open
+                          const { error } = await supabase.from('profiles').update({ is_open: nextStatus }).eq('id', user.id)
+                          if (!error) {
+                            show(nextStatus ? t('store_open') : t('store_closed'), 'success')
+                            refreshProfile()
+                          }
+                       }}
+                       className={`w-14 h-8 rounded-full transition-all relative flex items-center px-1 ${profile?.is_open ? 'bg-[#3ec976]' : 'bg-gray-300'}`}
+                     >
+                        <div className={`w-6 h-6 bg-white rounded-full transition-all shadow-md ${profile?.is_open ? 'translate-x-6' : 'translate-x-0'}`} />
+                     </button>
+                  </div>
+               </div>
+
+               <Button onClick={handleUpdateStore} loading={updatingStore}>Simpan Perubahan</Button>
+            </Card>
           )}
 
           {tab === 'alerts' && (

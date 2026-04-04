@@ -68,7 +68,7 @@ export default function Onboarding({ navigate }) {
       </div>
 
       {/* Main Narrative Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-10 pb-12 gap-12 relative">
+      <div className="flex-1 flex flex-col items-center justify-center px-10 pt-20 pb-12 gap-10 relative">
          {/* Background Ambient Glow */}
          <div 
            className="absolute w-[300px] h-[300px] blur-[120px] rounded-full transition-all duration-1000"
@@ -98,8 +98,8 @@ export default function Onboarding({ navigate }) {
          </div>
       </div>
 
-      {/* Action Suite (Bottom Bar Style) */}
-      <div className="px-8 pb-16 flex flex-col gap-4 relative z-10 animate-slide-up stagger-3">
+      {/* Action Suite (Expanded Spacing) */}
+      <div className="px-8 pb-20 pt-4 flex flex-col gap-4 relative z-10 animate-slide-up stagger-3">
          <Button 
             onClick={goNext} 
             className="!h-16 !text-lg !font-black !rounded-[24px] !bg-[#3ec976] !text-white shadow-[0_12px_40px_rgba(62,201,118,0.25)]"
@@ -117,8 +117,8 @@ export default function Onboarding({ navigate }) {
            </Button>
          )}
 
-         <p className="text-center text-[10px] font-black text-gray-600 uppercase tracking-[0.2em] mt-2">
-           {t('terms_agree')}
+         <p className="text-center text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] mt-4">
+            {t('terms_agree')}
          </p>
       </div>
       

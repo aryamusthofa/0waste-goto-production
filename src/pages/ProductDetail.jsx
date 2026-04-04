@@ -111,15 +111,20 @@ export default function ProductDetail({ navigate, params }) {
   return (
     <div className="flex flex-col min-h-screen pb-32 bg-white">
       {/* Image Overlay */}
-      <div className="relative">
+      <div className="relative overflow-hidden bg-gray-50 aspect-square sm:aspect-video rounded-b-[42px] shadow-soft">
         <img
           src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600'}
           alt={product.name}
-          className="w-full object-cover"
-          style={{ height: 320 }}
+          className={`w-full h-full object-cover animate-fade-in transition-all duration-700 ${product.profiles?.is_open === false ? 'grayscale brightness-75' : ''}`}
           onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=600'}
         />
-        <div className="absolute inset-0 glass-dark pointer-events-none" style={{ height: 140 }}></div>
+        {product.profiles?.is_open === false && (
+          <div className="absolute inset-0 bg-black/10 flex flex-col items-center justify-center pointer-events-none gap-2">
+            <Badge variant="dark" className="!bg-black/80 !text-white !px-6 !py-1 !text-sm font-black tracking-[0.2em] uppercase shadow-lg">Toko Tutup</Badge>
+            <p className="text-[10px] font-black text-white/60 uppercase tracking-widest drop-shadow-md">Kembali lagi besok ya!</p>
+          </div>
+        )}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none"></div>
         
         {/* Back button */}
         <button
@@ -160,7 +165,7 @@ export default function ProductDetail({ navigate, params }) {
       </div>
 
       {/* Main Content Card */}
-      <div className="flex-1 px-6 pt-8 bg-white relative -mt-8 rounded-t-[40px] shadow-[0_-12px_32px_rgba(0,0,0,0.06)] animate-slide-up">
+      <div className="flex-1 px-6 pt-10 bg-white relative -mt-10 rounded-t-[42px] shadow-premium animate-slide-up z-10 min-h-[500px]">
         <h1 className="text-[26px] leading-tight font-black mb-3" style={{ color: '#1a1a2e' }}>{product.name}</h1>
 
         {/* Status Badges Row */}
@@ -238,16 +243,15 @@ export default function ProductDetail({ navigate, params }) {
 
         {/* Report Block */}
         <Card 
-          glass 
-          padding="p-4" 
-          className="mb-12 border border-red-50 cursor-pointer"
+          padding="p-5" 
+          className="mb-12 border-2 border-red-50 hover:bg-red-50/30 transition-colors rounded-card"
           onClick={() => setShowReport(true)}
         >
-          <div className="flex items-center gap-3">
-             <span className="text-xl">⚠️</span>
+          <div className="flex items-center gap-4">
+             <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center text-xl shadow-inner">⚠️</div>
              <div className="flex-1">
-                <p className="text-xs font-black text-[#1a1a2e] uppercase tracking-wide">Pemberitahuan Masalah</p>
-                <p className="text-[11px] font-bold text-red-500 mt-0.5">Beritahu kami jika produk tidak sesuai standar keamanan.</p>
+                <p className="text-xs font-black text-[#1a1a2e] uppercase tracking-widest">Pemberitahuan Masalah</p>
+                <p className="text-[10px] font-bold text-red-500 mt-0.5 leading-tight">Bantu kami menjaga ekosistem tetap aman & terverifikasi.</p>
              </div>
              <span className="text-gray-300 text-xl font-black">›</span>
           </div>
@@ -262,11 +266,13 @@ export default function ProductDetail({ navigate, params }) {
             navigate('checkout', { product, qty })
           }}
           loading={false}
-          disabled={product.status === 'sold_out'}
+          disabled={product.status === 'sold_out' || product.profiles?.is_open === false}
         >
           {product.status === 'sold_out' 
             ? t('sold_out') 
-            : `${t('add_to_bag')} — Rp ${(product.discount_price * qty)?.toLocaleString('id')}`}
+            : product.profiles?.is_open === false
+              ? `🏬 Toko Sedang Tutup`
+              : `${t('add_to_bag')} — Rp ${(product.discount_price * qty)?.toLocaleString('id')}`}
         </Button>
       </div>
 

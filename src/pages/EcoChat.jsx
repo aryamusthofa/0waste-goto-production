@@ -5,25 +5,15 @@ import { sendAiMessage, isAiReady, getActiveProvider, PROVIDER_INFO } from '../l
 const QUICK_PROMPTS_KEYS = ['quick_prompt_1', 'quick_prompt_2', 'quick_prompt_3', 'quick_prompt_4']
 
 // Fallback responses jika tidak ada API key
-const FALLBACK = {
-  default: [
-    'Selamat datang di 0 Waste Shop Food! Saya Zera. Aktifkan Supabase Edge Function eco-chat untuk AI penuh. Ada yang bisa saya bantu?',
-    'Setiap produk di 0waste melalui verifikasi Anti-Basi untuk memastikan keamanan konsumen.',
-    'Tips: Selalu cek label "⏳ Anti-Basi" sebelum membeli. Badge ini menjamin produk masih optimal.',
-  ],
-  tips: 'Tips simpan makanan: 1) Pisahkan basah/kering. 2) Buah & sayur di laci terpisah. 3) Wadah kedap udara untuk makanan matang. 4) Label tanggal simpan di setiap wadah.',
-  'anti-basi': 'Anti-Basi adalah protokol keamanan pangan 0waste. Setiap produk diverifikasi mitra untuk memastikan masih dalam batas waktu aman konsumsi. Badge 🛡️ menjamin produk segar.',
-  surplus: 'Cara daftar surplus: Login sebagai Partner → Partner Dashboard → "+ Tambah Listing" → isi detail + expiry time → Publikasikan!',
-  keamanan: 'Standar keamanan 0waste: ✅ Verifikasi identitas mitra ✅ Higienitas berkala ✅ Countdown Anti-Basi real-time ✅ Rating kepercayaan tiap transaksi',
-}
-
-function fallbackReply(msg) {
+function getFallbackReply(msg, t) {
   const low = msg.toLowerCase()
-  if (low.includes('tips') || low.includes('simpan')) return FALLBACK.tips
-  if (low.includes('anti-basi') || low.includes('basi')) return FALLBACK['anti-basi']
-  if (low.includes('daftar') || low.includes('jual') || low.includes('surplus')) return FALLBACK.surplus
-  if (low.includes('aman') || low.includes('keamanan')) return FALLBACK.keamanan
-  return FALLBACK.default[Math.floor(Math.random() * FALLBACK.default.length)]
+  if (low.includes('tips') || low.includes('simpan')) return t('ai_storage_tips')
+  if (low.includes('anti-basi') || low.includes('basi')) return t('ai_anti_basi_verified')
+  if (low.includes('daftar') || low.includes('jual') || low.includes('surplus')) return t('ai_how_to_list')
+  if (low.includes('aman') || low.includes('keamanan')) return t('ai_safety_standards')
+  
+  const defaults = [t('ai_fallback_1'), t('ai_fallback_2'), t('ai_fallback_3')]
+  return defaults[Math.floor(Math.random() * defaults.length)]
 }
 
 export default function EcoChat({ navigate }) {
@@ -62,16 +52,16 @@ export default function EcoChat({ navigate }) {
         reply = await sendAiMessage(newHistory)
       } else {
         await new Promise(r => setTimeout(r, 800 + Math.random() * 500))
-        reply = fallbackReply(trimmed)
+        reply = getFallbackReply(trimmed, t)
       }
       setMessages(m => [...m, { role: 'bot', text: reply, ts: new Date() }])
       setHistory([...newHistory, { role: 'assistant', content: reply }])
     } catch (err) {
       const errText = err.message === 'NO_BACKEND_AI'
-        ? 'Konfigurasi AI backend belum aktif. Jalankan Supabase Edge Function eco-chat.'
-        : `Gagal menghubungi AI: ${err.message}`
+        ? t('ai_config_error')
+        : `${t('error')}: ${err.message}`
       setError(errText)
-      const fallback = fallbackReply(trimmed)
+      const fallback = getFallbackReply(trimmed, t)
       setMessages(m => [...m, { role: 'bot', text: fallback, ts: new Date() }])
       setHistory([...newHistory, { role: 'assistant', content: fallback }])
     } finally {
@@ -103,7 +93,7 @@ export default function EcoChat({ navigate }) {
         {aiReady && (
           <div className="px-2 py-1 rounded-xl text-xs font-bold flex-shrink-0"
             style={{ background: 'rgba(62,201,118,0.15)', color: '#3ec976' }}>
-            AI Live
+            {t('ai_live')}
           </div>
         )}
       </div>
@@ -116,11 +106,9 @@ export default function EcoChat({ navigate }) {
         </div>
       )}
       {!aiReady && !error && (
-        <div className="mx-4 mt-3 px-4 py-3 rounded-xl text-xs"
-          style={{ background: 'rgba(245,158,11,0.1)', color: '#b45309', border: '1px solid rgba(245,158,11,0.2)' }}>
-          <span className="font-bold">Demo Mode</span> — Tambahkan{' '}
-          <code style={{ background: 'rgba(0,0,0,0.06)', padding: '1px 4px', borderRadius: 4 }}>supabase functions deploy eco-chat</code>
-          {' '}dan set secret <code style={{ background: 'rgba(0,0,0,0.06)', padding: '1px 4px', borderRadius: 4 }}>GEMINI_API_KEY</code> untuk AI sungguhan.
+        <div className="mx-4 mt-3 px-4 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest leading-relaxed"
+          style={{ background: 'rgba(245,158,11,0.08)', color: '#b45309', border: '1px solid rgba(245,158,11,0.15)' }}>
+          ⚠️ {t('ai_demo_notice')}
         </div>
       )}
 

@@ -9,14 +9,17 @@ import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Button from '../components/ui/Button'
 import Input from '../components/ui/Input'
+import Modal from '../components/ui/Modal'
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
 
 const STATUS_CONFIG = {
-  pending:   { variant: 'warning', label: '⏳ Menunggu',   canCancel: true  },
-  completed: { variant: 'success', label: '✅ Selesai',    canCancel: false },
-  cancelled: { variant: 'danger',  label: '❌ Dibatalkan', canCancel: false },
+  pending:   { variant: 'warning', label: '⏳ Menunggu Konfirmasi', canCancel: true  },
+  completed: { variant: 'success', label: '✅ Pesanan Selesai',    canCancel: false },
+  cancelled: { variant: 'danger',  label: '❌ Pesanan Dibatalkan', canCancel: false },
 }
 
-function OrderCard({ order, onCancel }) {
+function OrderCard({ order, onCancel, onViewReceipt }) {
   const { t } = useTranslation()
   const { show } = useToast()
   
@@ -47,7 +50,7 @@ function OrderCard({ order, onCancel }) {
   }
 
   return (
-    <Card padding="p-0" className="overflow-hidden border border-gray-50 flex flex-col">
+    <Card padding="p-0" className="overflow-hidden border border-gray-50 flex flex-col rounded-card shadow-soft hover:shadow-premium transition-all duration-300">
       {/* Top Status Bar */}
       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-gray-50/30">
          <Badge variant={s.variant} className="!px-2 !py-0.5 !text-[9px]">{s.label}</Badge>
@@ -101,9 +104,9 @@ function OrderCard({ order, onCancel }) {
                   onClick={handleCancelClick}
                   loading={cancelling}
                   fullWidth={false}
-                  className="!h-10 !px-4 !text-xs !rounded-xl"
+                  className="!h-10 !px-5 !text-[11px] !font-black !rounded-xl !uppercase tracking-tighter"
                 >
-                  {confirmCancel ? 'Tap Konfirmasi' : 'Batalkan'}
+                  {confirmCancel ? 'Konfirmasi' : 'Batalkan'}
                 </Button>
               )}
               
@@ -111,9 +114,9 @@ function OrderCard({ order, onCancel }) {
                 variant="secondary" 
                 fullWidth={false}
                 className="!h-10 !px-4 !text-xs !rounded-xl"
-                icon="💬"
+                onClick={() => onViewReceipt(order)}
               >
-                Chat
+                Struk
               </Button>
            </div>
         </div>
@@ -129,6 +132,9 @@ export default function Orders({ navigate }) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [search, setSearch] = useState('')
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [exporting, setExporting] = useState(false)
+  const receiptRef = useRef(null)
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
@@ -240,11 +246,134 @@ export default function Orders({ navigate }) {
         ) : (
           <div className="flex flex-col gap-5 animate-slide-up">
             {filtered.map(order => (
-              <OrderCard key={order.id} order={order} onCancel={handleCancel} />
+              <OrderCard key={order.id} order={order} onCancel={handleCancel} onViewReceipt={setSelectedOrder} />
             ))}
           </div>
         )}
       </div>
+
+      {/* Receipt Modal */}
+      <Modal
+        isOpen={!!selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        title={t('receipt_title')}
+      >
+        {selectedOrder && (
+          <div className="flex flex-col gap-8 pb-4">
+             {/* Virtual Receipt Paper */}
+             <div 
+               ref={receiptRef}
+               className="bg-white p-8 rounded-card shadow-lg border-2 border-dashed border-gray-100 flex flex-col gap-6"
+               style={{ width: '100%', maxWidth: '340px', margin: '0 auto' }}
+             >
+                {/* Receipt Header */}
+                <div className="text-center border-b-2 border-dashed border-gray-50 pb-6">
+                   <div className="w-14 h-14 rounded-full bg-[#3ec976] flex items-center justify-center text-3xl mx-auto mb-4">🌿</div>
+                   <h3 className="text-xl font-black text-[#1a1a2e] uppercase tracking-widest">0Waste Shop</h3>
+                   <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase tracking-[0.2em]">Eco-Circular Food Marketplace</p>
+                </div>
+
+                {/* Order Meta */}
+                <div className="flex flex-col gap-1.5 py-4 border-b border-gray-50">
+                   <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-gray-400">
+                      <span>Order ID</span>
+                      <span>{selectedOrder.id?.slice(0, 14).toUpperCase()}</span>
+                   </div>
+                   <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-gray-400">
+                      <span>Date</span>
+                      <span>{new Date(selectedOrder.created_at).toLocaleDateString()}</span>
+                   </div>
+                </div>
+
+                {/* Items */}
+                <div className="flex flex-col gap-4 py-4 border-b border-gray-50 text-sm font-bold text-[#1a1a2e]">
+                   <div className="flex justify-between items-start gap-3">
+                      <span className="flex-1">{selectedOrder.products?.name}</span>
+                      <span className="text-right">Rp {selectedOrder.total_price?.toLocaleString('id')}</span>
+                   </div>
+                   <div className="flex justify-between items-center text-xs text-gray-400">
+                      <span>Qty: 1</span>
+                      <span>Subtotal: Rp {selectedOrder.total_price?.toLocaleString('id')}</span>
+                   </div>
+                </div>
+
+                {/* Total */}
+                <div className="flex flex-col gap-4 pt-4">
+                   <div className="flex justify-between items-center">
+                      <span className="text-sm font-black text-[#1a1a2e]">TOTAL</span>
+                      <span className="text-xl font-black text-[#3ec976]">Rp {selectedOrder.total_price?.toLocaleString('id')}</span>
+                   </div>
+                   <div className="flex justify-between items-center bg-gray-50 px-3 py-2 rounded-xl border border-gray-100">
+                      <span className="text-[9px] font-black text-gray-400 uppercase">Payment Method</span>
+                      <span className="text-[10px] font-black text-[#1a1a2e] uppercase">{selectedOrder.payment_method}</span>
+                   </div>
+                </div>
+
+                {/* Footer Message */}
+                <div className="text-center pt-6 opacity-30">
+                   <p className="text-[8px] font-black text-gray-400 leading-relaxed uppercase tracking-widest">Terima kasih telah membantu<br/>mengurangi limbah pangan! 🌿✨</p>
+                </div>
+             </div>
+
+             {/* Export Buttons */}
+             <div className="flex flex-col gap-3 mt-4">
+                <Button
+                  onClick={async () => {
+                    setExporting(true)
+                    try {
+                      const canvas = await html2canvas(receiptRef.current, { scale: 3, backgroundColor: '#ffffff' })
+                      const link = document.createElement('a')
+                      link.download = `receipt-${selectedOrder.id.slice(0, 8)}.png`
+                      link.href = canvas.toDataURL('image/png')
+                      link.click()
+                      show('Gambar struk berhasil diunduh.', 'success')
+                    } catch (e) {
+                      show('Gagal mengekspor gambar.', 'error')
+                    } finally {
+                      setExporting(false)
+                    }
+                  }}
+                  loading={exporting}
+                  className="!h-14 !rounded-2xl !font-black !text-sm"
+                >
+                  🖼️ {t('receipt_export_img')}
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    setExporting(true)
+                    try {
+                      const canvas = await html2canvas(receiptRef.current, { scale: 3, backgroundColor: '#ffffff' })
+                      const imgData = canvas.toDataURL('image/png')
+                      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+                      const imgProps = pdf.getImageProperties(imgData)
+                      const pdfWidth = pdf.internal.pageSize.getWidth()
+                      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
+                      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
+                      pdf.save(`receipt-${selectedOrder.id.slice(0, 8)}.pdf`)
+                      show('PDF struk berhasil diunduh.', 'success')
+                    } catch (e) {
+                      show('Gagal mengekspor PDF.', 'error')
+                    } finally {
+                      setExporting(false)
+                    }
+                  }}
+                  loading={exporting}
+                  className="!h-14 !rounded-2xl !font-black !text-sm"
+                >
+                  📄 {t('receipt_export_pdf')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setSelectedOrder(null)}
+                  className="!h-12 !rounded-xl !font-black !text-xs !uppercase !tracking-widest"
+                >
+                  {t('close')}
+                </Button>
+             </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

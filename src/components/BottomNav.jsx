@@ -33,28 +33,28 @@ const ShieldIcon = ({ filled }) => (
   </svg>
 )
 
-export default function BottomNav({ active, navigate }) {
+export default function BottomNav({ activeRoute, navigate }) {
   const { profile } = useAuth()
   const { t } = useTranslation()
   const isPartner = profile?.role === 'partner' && profile?.partner_status === 'approved' && !profile?.is_suspended
   const isSuperAdmin = Boolean(profile?.is_super_admin)
 
   const items = [
-    { key: 'home', label: 'Beranda', icon: <HomeIcon /> },
-    { key: 'orders', label: 'Pesanan', icon: <BagIcon /> },
+    { key: 'home', label: t('explore'), icon: <HomeIcon /> },
+    { key: 'orders', label: t('orders'), icon: <BagIcon /> },
+    { key: 'zera', label: 'Zera AI', icon: <div className="text-xl">🌿</div> },
     { key: 'wishlist', label: 'Wishlist', icon: <HeartIcon /> },
-    { key: 'chat', label: 'Eco AI', icon: <span className="text-[18px]">🌿</span> },
-    ...(isPartner ? [{ key: 'partner', label: 'Mitra', icon: <ShopIcon /> }] : []),
+    ...(isPartner ? [{ key: 'dashboard', label: t('partner'), icon: <ShopIcon /> }] : []),
     ...(isSuperAdmin ? [{ key: 'admin', label: 'Admin', icon: <ShieldIcon /> }] : []),
-    { key: 'profile', label: 'Profil', icon: <UserIcon /> },
+    { key: 'profile', label: t('profile'), icon: <UserIcon /> },
   ]
 
   return (
     <nav
-      className="fixed bottom-4 left-1/2 -translate-x-1/2 w-[calc(100%-32px)] max-w-[398px] z-50 glass-panel shadow-float animate-slide-up"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[calc(100%-48px)] max-w-[380px] z-50 glass-panel shadow-premium animate-pop-in"
       style={{
-        borderRadius: '24px',
-        padding: '8px 4px',
+        borderRadius: '32px',
+        padding: '10px 6px',
       }}
     >
       <div className="flex items-center justify-around">
@@ -62,16 +62,21 @@ export default function BottomNav({ active, navigate }) {
           <button
             key={item.key}
             onClick={() => navigate(item.key)}
-            className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-[20px] transition-all duration-300 min-w-[50px] ${active === item.key ? 'scale-105' : 'scale-100 hover:scale-105'}`}
+            className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-[22px] transition-all duration-500 relative ${activeRoute === item.key ? 'scale-110' : 'opacity-40 hover:opacity-100 hover:scale-105'}`}
             style={{
-              color: active === item.key ? '#3ec976' : '#9ca3af',
-              background: active === item.key ? 'rgba(62,201,118,0.12)' : 'transparent',
+              color: activeRoute === item.key ? '#3ec976' : '#1a1a2e',
+              background: activeRoute === item.key ? 'rgba(62,201,118,0.12)' : 'transparent',
             }}
           >
-            <div className="transition-transform duration-300 transform">
+            {activeRoute === item.key && (
+              <div className="absolute -top-1 w-1 h-1 rounded-full bg-[#3ec976] shadow-[0_0_8px_#3ec976] animate-pulse" />
+            )}
+            <div className="transition-transform duration-500">
               {item.icon}
             </div>
-            <span className="text-[10px] font-semibold">{item.label}</span>
+            <span className={`text-[9px] font-black uppercase tracking-tighter ${activeRoute === item.key ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'}`}>
+              {item.label}
+            </span>
           </button>
         ))}
       </div>

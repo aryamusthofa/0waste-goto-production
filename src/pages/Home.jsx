@@ -7,6 +7,8 @@ import { useTimeLeft } from '../hooks/useTimeLeft'
 import Card from '../components/ui/Card'
 import Badge from '../components/ui/Badge'
 import Input from '../components/ui/Input'
+import Modal from '../components/ui/Modal'
+import Button from '../components/ui/Button'
 
 const categories = [
   { key: 'all', labelKey: 'all', icon: '🌿' },
@@ -40,10 +42,17 @@ function ProductCard({ product, index = 0, navigate }) {
         <img
           src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=400'}
           alt={product.name}
-          className="w-full object-cover"
+          className={`w-full object-cover transition-all duration-700 ${product.profiles?.is_open === false ? 'grayscale brightness-75' : ''}`}
           style={{ height: 160 }}
           onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=400'}
         />
+        {product.profiles?.is_open === false && (
+          <div className="absolute inset-0 bg-black/20 flex items-center justify-center pointer-events-none">
+            <Badge variant="dark" className="!bg-black/60 !text-white !text-[10px] !px-3 font-black tracking-widest uppercase">
+              Toko Tutup
+            </Badge>
+          </div>
+        )}
         <div className="absolute top-2 left-2 flex flex-col gap-1.5">
           {discount > 0 && (
             <Badge variant="dark" className="px-2 py-0.5 bg-[#3ec976] !text-white !text-[9px]">
@@ -118,29 +127,53 @@ function SkeletonCard() {
 
 export default function Home({ navigate }) {
   const { t } = useTranslation()
+  const { isDeveloper } = useAuth()
   const [activeCategory, setActiveCategory] = useState('all')
   const [search, setSearch] = useState('')
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showLocationModal, setShowLocationModal] = useState(false)
+  const [location, setLocation] = useState('Sudirman, JKT')
 
   useEffect(() => {
     const controller = new AbortController();
+    
+    // Safety timeout: 7 seconds to stop infinite loading
+    const timeout = setTimeout(() => {
+      setLoading(false)
+      controller.abort()
+    }, 7000)
+
     const load = async () => {
       setLoading(true)
       try {
-        let query = supabase.from('products').select('*').neq('status', 'sold_out').order('created_at', { ascending: false }).abortSignal(controller.signal)
+        let query = supabase.from('products')
+          .select('*, profiles(is_open, store_name)')
+          .neq('status', 'sold_out')
+          .order('created_at', { ascending: false })
+          .abortSignal(controller.signal)
+          
         if (search) query = query.ilike('name', `%${search}%`)
+        
         const { data, error } = await query
-        if (error) console.error('Supabase fetch products error:', error)
+        if (error) throw error
         setProducts(data || [])
       } catch (err) {
-        setProducts([])
+        if (err.name !== 'AbortError') {
+          console.error('Supabase fetch products error:', err)
+          setProducts([])
+        }
       } finally {
+        clearTimeout(timeout)
         setLoading(false)
       }
     }
+    
     load()
-    return () => controller.abort()
+    return () => {
+      clearTimeout(timeout)
+      controller.abort()
+    }
   }, [search])
 
   const filtered = activeCategory === 'all'
@@ -154,26 +187,35 @@ export default function Home({ navigate }) {
   return (
     <div className="flex flex-col min-h-screen pb-32 bg-[#F9FAFB]">
       {/* Header & Search */}
-      <div className="px-6 pt-14 pb-6 bg-white rounded-b-[40px] shadow-[0_8px_32px_rgba(0,0,0,0.02)]">
+      <div className="px-6 pt-18 pb-6 bg-white rounded-b-[40px] shadow-[0_8px_32px_rgba(0,0,0,0.02)]">
         <div className="flex items-center justify-between mb-8">
           <div className="flex flex-col">
             <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest mb-1.5 pl-0.5">
               📍 {t('delivery_location')}
             </span>
-            <div className="flex items-center gap-1.5">
-               <span className="font-black text-[22px] text-[#1a1a2e]">Sudirman, JKT</span>
+            <div 
+              className="flex items-center gap-1.5 cursor-pointer active:scale-95 transition-transform"
+              onClick={() => setShowLocationModal(true)}
+            >
+               <span className="font-black text-[22px] text-[#1a1a2e]">{location}</span>
                <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="#1a1a2e" strokeWidth={3}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                </svg>
             </div>
           </div>
-          <Card 
-            className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-soft"
-            padding="p-0"
-            style={{ background: 'rgba(62,201,118,0.12)', border: '2px solid rgba(62,201,118,0.2)' }}
-          >
-            🌿
-          </Card>
+          <div className="flex flex-col items-end gap-1">
+            <Card 
+              className="w-14 h-14 rounded-2xl flex items-center justify-center text-3xl shadow-soft transition-transform active:scale-95"
+              padding="p-0"
+              style={{ background: 'rgba(62,201,118,0.12)', border: '2px solid rgba(62,201,118,0.2)' }}
+              onClick={() => navigate('profile')}
+            >
+              🌿
+            </Card>
+            {isDeveloper && (
+              <Badge variant="danger" className="!px-1.5 !py-0 !text-[8px] !font-black !tracking-tight">🛡️ ROOT</Badge>
+            )}
+          </div>
         </div>
 
         <Input 
@@ -230,12 +272,17 @@ export default function Home({ navigate }) {
                     <img
                       src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=200'}
                       alt={product.name}
-                      className="w-full object-cover"
+                      className={`w-full object-cover transition-all ${product.profiles?.is_open === false ? 'grayscale brightness-75' : ''}`}
                       style={{ height: 110 }}
                     />
                     <Badge variant="danger" className="absolute bottom-2 left-2 !px-2 !py-0.5 !text-[8px]">
                       Hampir Habis
                     </Badge>
+                    {product.profiles?.is_open === false && (
+                      <div className="absolute inset-0 bg-black/10 flex items-center justify-center">
+                        <span className="text-[7px] font-black text-white uppercase tracking-tighter bg-black/40 px-1.5 py-0.5 rounded-md">CLOSED</span>
+                      </div>
+                    )}
                   </div>
                   <div className="p-3">
                     <p className="text-xs font-black text-[#1a1a2e] leading-tight mb-2">
@@ -285,6 +332,43 @@ export default function Home({ navigate }) {
           )}
         </div>
       </div>
+
+      {/* Location Picker Modal */}
+      <Modal
+        isOpen={showLocationModal}
+        onClose={() => setShowLocationModal(false)}
+        title="Ganti Lokasi Pengantaran"
+      >
+        <div className="flex flex-col gap-6">
+           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest pl-1">Area Populer Jakarta</p>
+           <div className="flex flex-col gap-2">
+              {['Sudirman, JKT', 'Menteng, JKT', 'Kuningan, JKT', 'Senopati, JKT', 'Kemang, JKT'].map(loc => (
+                <button
+                  key={loc}
+                  onClick={() => { setLocation(loc); setShowLocationModal(false) }}
+                  className="w-full p-5 rounded-2xl flex items-center justify-between transition-all group"
+                  style={{
+                    background: location === loc ? '#3ec976' : '#F4F4F9',
+                    color: location === loc ? 'white' : '#1a1a2e',
+                  }}
+                >
+                  <span className="font-black text-sm">{loc}</span>
+                  {location === loc && <span className="text-white">✓</span>}
+                </button>
+              ))}
+           </div>
+           
+           <div className="mt-4 pt-6 border-t border-gray-50 flex flex-col gap-3">
+              <Button
+                variant="secondary"
+                className="!h-14 !rounded-2xl !font-black !text-sm"
+                onClick={() => setShowLocationModal(false)}
+              >
+                Tutup
+              </Button>
+           </div>
+        </div>
+      </Modal>
     </div>
   )
 }

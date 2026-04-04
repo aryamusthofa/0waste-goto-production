@@ -19,6 +19,8 @@ export default function Register({ navigate }) {
   const [businessType, setBusinessType] = useState('restaurant')
   const [storePhone, setStorePhone] = useState('')
   const [storeAddress, setStoreAddress] = useState('')
+  const [storeWhatsapp, setStoreWhatsapp] = useState('')
+  const [storeTelegram, setStoreTelegram] = useState('')
   
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
@@ -67,6 +69,8 @@ export default function Register({ navigate }) {
         business_type: role === 'partner' ? businessType : null,
         store_phone: role === 'partner' ? storePhone.trim() || null : null,
         store_address: role === 'partner' ? storeAddress.trim() || null : null,
+        store_whatsapp: role === 'partner' ? storeWhatsapp.trim() || null : null,
+        store_telegram: role === 'partner' ? storeTelegram.trim() || null : null,
         created_at: new Date().toISOString(),
       })
       
@@ -183,6 +187,21 @@ export default function Register({ navigate }) {
                   placeholder="08xxxx"
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <Input 
+                  label={t('whatsapp')}
+                  value={storeWhatsapp}
+                  onChange={e => setStoreWhatsapp(e.target.value)}
+                  placeholder="+62..."
+                />
+                <Input 
+                  label={t('telegram')}
+                  value={storeTelegram}
+                  onChange={e => setStoreTelegram(e.target.value)}
+                  placeholder="@username"
+                />
+              </div>
               <div className="flex flex-col gap-1.5">
                 <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">Alamat Toko</label>
                 <textarea
@@ -236,10 +255,11 @@ export default function Register({ navigate }) {
         </div>
       </div>
 
-      <div className="px-6 pb-12 flex flex-col gap-4 bg-white pt-4 shadow-[0_-12px_24px_rgba(0,0,0,0.02)]">
+      <div className="px-6 pb-20 flex flex-col gap-4 bg-white pt-6 shadow-[0_-20px_40px_rgba(0,0,0,0.02)] relative z-20">
         <Button 
           onClick={handleRegister}
           loading={loading}
+          className="!h-16 !font-black !rounded-[24px]"
         >
           {t('register')}
         </Button>

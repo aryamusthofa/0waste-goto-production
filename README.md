@@ -1,106 +1,93 @@
-# 0Waste Shop Food — Master Production Rollout
+# 🌿 0Waste Shop (Food) — Trusted Circular Marketplace
 
-Aplikasi marketplace circular economy khusus untuk surplus makanan, dengan tujuan utama mengurangi *food waste* dan menghemat pembelian pangan bagi masyarakat. Dirancang kuat dengan fokus pada *Security, Governance, dan Anti-Basi Protocol*.
+0Waste Shop adalah platform inovatif yang menghubungkan pembeli dengan toko yang memiliki surplus makanan berkualitas tinggi. Proyek ini bertujuan untuk mengurangi limbah pangan sekaligus memberikan akses makanan ekonomis kepada masyarakat melalui teknologi modern yang aman, transparan, dan berkelanjutan.
 
-## Ringkasan Fitur
-- **Buyer Flow**: Pencarian produk berhemat dengan fitur penguncian inventaris (*atomic checkout*).
-- **Partner Flow**: Manajemen etalase berjenjang (*Pending → Under Review → Approved*) untuk menjamin kebersihan dan legalitas.
-- **Super-Admin Console**: Kontrol penuh untuk menghukum, men-suspend, atau menghapus pengguna/produk bermasalah.
-- **EcoChat (Zera AI)**: Asisten virtual bertenaga Gemini 2.0 Flash yang terlindungi di dalam Supabase Edge Function untuk keamanan secret *zero-leak*.
+---
 
-## Arsitektur
+## 🚀 Fitur Unggulan
 
-- **Frontend**: Vite 8, React 19, TailwindCSS 4
-- **Mobile Packaging**: Capacitor 8 (Android-first)
-- **Backend / BaaS**: Supabase (PostgreSQL, Storage, RLS, Edge Functions, RPC Auth)
-- **AI Backend**: Google Gemini via Supabase Edge Functions 
+### 🛍️ Marketplace Surplus Pintar
+*   **Kategori Dinamis**: Bakery, Fruits, Meat, Dairy, hingga Eco-Deals.
+*   **Pencarian Cepat**: Menemukan produk terdekat dengan filter "Hampir Kedaluwarsa".
+*   **Lencana Trust**: Indikator **Halal**, **Anti-Basi**, dan **Terverifikasi** untuk keamanan konsumen.
 
-## Tahap 1: Persiapan Dasar (Zero Setup)
+### 💳 Transaksi Aman & Modern (Midtrans)
+*   **Pembayaran Digital**: Mendukung E-Wallet, CC, dan Bank Transfer melalui **Midtrans Snap**.
+*   **Metode COD**: Fleksibilitas pembayaran di tempat untuk kenyamanan maksimal.
+*   **Dua Jalur Pengantaran**: Pilih antara **Ambil Sendiri (Pickup)** atau **Kurir (Delivery)**.
 
-Pastikan dependensi di bawah ini telah terpasang di komputer Anda:
-1. Node.js (versi 18+) & `npm`
-2. Supabase CLI (`npm install -g supabase`)
-3. Docker Desktop (jika ingin *testing* Supabase lokal, namun kita menggunakan Cloud Supabase)
-4. Android Studio & SDK (Untuk proses rilis APK/AAB)
+### 🏛️ Mission Control & Moderasi (Super Admin)
+*   **Dashboard Root**: Akses kedaulatan penuh bagi pengembang (Mas CEO) untuk mengelola seluruh ekosistem.
+*   **Inbox Bantuan**: Komunikasi langsung antara admin dan pengguna untuk resolusi masalah cepat.
+*   **Moderasi Komunitas**: Laporkan produk/toko bermasalah untuk lingkungan yang lebih sehat.
 
-Clone repository (terletak di folder `0wasteproduction`), lalu jalankan:
+### 🏪 Dashboard Mitra Profesional (Partner)
+*   **Eco-Impact Dash**: Lihat kontribusi lingkunganmu (CO2 offset).
+*   **Status Toko**: Toggle Buka/Tutup Toko dengan antarmuka **Grayscale** otomatis.
+*   **WhatsApp Notify**: Kirim instruksi penjemputan ke pembeli hanya dengan satu klik.
+
+### 🤖 Zera AI Assistant
+*   **Asisten Cerdas**: Didukung oleh Gemini AI untuk panduan keamanan pangan, ekonomi sirkular, dan bantuan aplikasi dalam Bahasa Indonesia & Inggris.
+
+---
+
+## 🛠️ Tech Stack (Teknologi)
+
+*   **Frontend**: React 19, Vite, TailwindCSS 4.
+*   **Mobile Framework**: Capacitor 8 (Cross-platform).
+*   **Database & Auth**: Supabase (PostgreSQL with RLS).
+*   **CI/CD**: GitHub Actions (Build APK Otomatis).
+*   **Localization**: i18next (Dual-language ID/EN).
+
+---
+
+## 📦 Panduan Instalasi & Pengembangan
+
+### 1. Prasyarat (Prerequisites)
+Pastikan Anda memiliki:
+*   [Node.js (v20+)](https://nodejs.org/)
+*   [Supabase Account](https://supabase.com/)
+*   Android Studio (Untuk build native lokal)
+
+### 2. Kloning & Pengaturan
 ```bash
+git clone https://github.com/aryamusthofa/0waste-goto-production.git
+cd 0wasteproduction
 npm install
 ```
 
-## Tahap 2: Lingkungan `env`
-
-Buat file `.env` di direktori utama, lalu salin dari `.env.example`:
-
-```bash
-VITE_SUPABASE_URL=https://ydaidnppdvzwvdhziifc.supabase.co
-VITE_SUPABASE_ANON_KEY=...
-VITE_AI_PROVIDER=gemini
-```
-*Catatan Keamanan: Tidak boleh ada Kunci API Gemini (`VITE_GEMINI_API_KEY`) di file frontend. Kunci AI akan disimpan di server backend (Edge Functions).*
-
-## Tahap 3: Database & Governance Setup
-Buka halaman SQL Editor di Dasbor Supabase Anda, kemudian eksekusi skrip-skrip berikut secara berurutan:
-1. `databasesetup3-sql.txt`
-2. `databasesetup4-wishlists.sql`
-3. `databasesetup5-checkout-engine.sql`
-4. `databasesetup6-governance.sql`
-5. `databasesetup7-reporting.sql`
-
-## Tahap 4: Akun Super-Admin (Master Keys)
-
-Sebagai developer, Anda harus menginisialisasi **Akses Super Admin** untuk aplikasi ini:
-
-1. Daftarkan diri Anda di Aplikasi Mobile 0Waste secara normal.
-2. Buka Supabase SQL Editor.
-3. Eksekusi kode berikut:
-
-```sql
-INSERT INTO developer_admins (email) VALUES ('email_anda_disini@gmail.com');
-UPDATE profiles SET is_super_admin = true WHERE id = (SELECT id FROM auth.users WHERE email = 'email_anda_disini@gmail.com');
+### 3. Konfigurasi Environment
+Buat file `.env` di root folder:
+```env
+VITE_SUPABASE_URL=URL_SUPABASE_ANDA
+VITE_SUPABASE_ANON_KEY=ANON_KEY_ANDA
 ```
 
-Setelah ini dieksekusi, menu siluman 'Admin' akan muncul di menu navigasi utama aplikasi Anda.
-
-## Tahap 5: Menyebarkan Edge Function (Gemini)
-
-AI Assistant harus disebarkan ke Supabase Edge Functions guna menyembunyikan API key. Jalankan perintah ini di VSCode Terminal / Cursor:
-
+### 4. Menjalankan Aplikasi
 ```bash
-# Hubungkan Supabase CLI dengan project Anda
-supabase link --project-ref ydaidnppdvzwvdhziifc
+# Mode Web Development
+npm run dev
 
-# Tanamkan rahasia ke server Supabase Cloud
-supabase secrets set GEMINI_API_KEY="isi_dengan_key_gemini_anda_yang_sesungguhnya"
-
-# Kirim fungsi Edge 'eco-chat' ke Cloud
-supabase functions deploy eco-chat --no-verify-jwt
-```
-
-## Tahap 6: Runbook Produksi Lokal (Smoke Test)
-
-Sebelum mencetak APK Android, jalankan gerbang kualitas otomatis:
-```bash
-# Mengecek credential leak, conflict marker, dan environment
-npm run smoke
-
-# Memastikan optimasi file tidak error
-npm run build
-```
-
-## Tahap 7: Android Rilis Publik (.APK / .AAB)
-
-Konfigurasi Android tersimpan kokoh di `capacitor.config.json` dengan Bundle ID `com.zerowaste.shopfood`.
-
-```bash
-# Sinkronisasi web assets (HTML/CSS/JS) ke Android Native 
-npm run cap:sync
-
-# Buka Android Studio untuk Build APK
+# Sinkronisasi Android
 npm run cap:android
 ```
 
-Di Android Studio:
-- Pilih *Build > Generate Signed Bundle / APK*
-- Jika Anda ingin mencoba tes ke HP pribadi, cukup sambungkan dengan kabel USB dan klik tombol *Run (Segitiga Hijau)*.
-- Pastikan versi di `android/app/build.gradle` (versionCode dan versionName) tidak bertubrukan saat lempar update ke Play Store kelak.
+---
+
+## 🏗️ Continuous Integration (CI/CD)
+
+Proyek ini telah dikonfigurasi dengan **GitHub Actions**. Setiap kali Anda melakukan `push` ke branch `main`, GitHub akan secara otomatis:
+1. Memeriksa kualitas kode.
+2. Membangun aset web produksi.
+3. Men-generate file **.APK (Release)** yang bisa diunduh langsung dari tab *Actions*.
+
+---
+
+## 🛡️ Hak Cipta & Tim Pengembang
+
+*   **Pemilik Proyek**: Mas CEO (Arya Musthofa)
+*   **AI Developer**: Antigravity AI (Google Deepmind - Zera System)
+*   **Visi**: "Membangun masa depan sirkular yang terpercaya satu pesanan sekaligus."
+
+---
+**0Waste Shop — Food for Humanity, Future for Earth.** 🌍🌿

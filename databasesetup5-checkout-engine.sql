@@ -82,7 +82,9 @@ BEGIN
   )
   VALUES (
     v_customer_id, p_product_id, p_qty, p_method,
-    v_total, p_payment, 'paid', 'pending',
+    v_total, p_payment, 
+    CASE WHEN p_payment = 'digital' THEN 'pending' ELSE 'awaiting_payment' END, 
+    'pending',
     v_shipping_fee
   )
   RETURNING id INTO v_order_id;

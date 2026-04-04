@@ -9,10 +9,12 @@ import i18n from '../i18n'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Badge from '../components/ui/Badge'
+import Modal from '../components/ui/Modal'
+import Input from '../components/ui/Input'
 
 export default function Profile({ navigate }) {
   const { t } = useTranslation()
-  const { user, profile, signOut } = useAuth()
+  const { user, profile, isDeveloper, signOut } = useAuth()
   const { show } = useToast()
   
   const [lang, setLang] = useState(i18n.language)
@@ -25,8 +27,10 @@ export default function Profile({ navigate }) {
     emailSummary: true,
   })
 
-  const [deleteConfirm, setDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [showLogoutModal, setShowLogoutModal] = useState(false)
+  const [deleteInput, setDeleteInput] = useState('')
 
   const toggleSwitch = (key) => setToggles(t => ({ ...t, [key]: !t[key] }))
 
@@ -37,24 +41,26 @@ export default function Profile({ navigate }) {
   }
 
   const handleLogout = async () => {
-    // We'll use a standard confirmation instead of window.confirm for production
-    if (window.confirm(t('logout_confirm'))) {
-      try {
-        await signOut()
-        show('Berhasil keluar.', 'info')
-      } catch (e) {
-        show('Gagal keluar: ' + e.message, 'error')
-      }
+    try {
+      await signOut()
+      show(t('logout_success'), 'info')
+      setShowLogoutModal(false)
+    } catch (e) {
+      show('Gagal keluar: ' + e.message, 'error')
     }
   }
 
-  const handleDeleteAccount = async () => {
-    if (!deleteConfirm) {
-      setDeleteConfirm(true)
-      show('Tekan sekali lagi untuk konfirmasi penghapusan akun.', 'warning')
+  const handleDeleteAccount = () => {
+    setShowDeleteModal(true)
+    setDeleteInput('')
+  }
+
+  const executeDeleteDeleteAccount = async () => {
+    if (deleteInput !== t('delete_confirm_phrase')) {
+      show('Frase konfirmasi tidak cocok.', 'error')
       return
     }
-    
+
     setDeleting(true)
     try {
       const { data, error } = await supabase.rpc('user_self_delete')
@@ -62,11 +68,11 @@ export default function Profile({ navigate }) {
       
       if (error || !result.success) throw new Error(error?.message || result.error)
       
-      show('Akun berhasil dihapus. Sampai jumpa lagi!', 'success')
+      show(t('delete_account_success') || 'Account deleted.', 'success')
+      setShowDeleteModal(false)
       await signOut()
     } catch (err) {
       show('Gagal menghapus akun: ' + (err.message || 'Error tidak dikenal.'), 'error')
-      setDeleteConfirm(false)
     } finally {
       setDeleting(false)
     }
@@ -75,9 +81,9 @@ export default function Profile({ navigate }) {
   if (!user) return (
     <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-white text-center">
        <div className="text-7xl mb-8 animate-pop-in">👤</div>
-       <h2 className="text-2xl font-black text-[#1a1a2e] mb-2 leading-tight">Masuk ke Profil</h2>
-       <p className="text-gray-400 font-medium mb-12 max-w-[240px]">Kelola pesanan, riwayat donasi, dan pengaturan akun kamu.</p>
-       <Button onClick={() => navigate('login')} className="max-w-[200px]">Sign In</Button>
+       <h2 className="text-2xl font-black text-[#1a1a2e] mb-2 leading-tight">{t('profile_locked')}</h2>
+       <p className="text-gray-400 font-medium mb-12 max-w-[240px]">{t('profile_locked_desc')}</p>
+       <Button onClick={() => navigate('login')} className="max-w-[200px]">{t('sign_in')}</Button>
     </div>
   )
 
@@ -108,6 +114,11 @@ export default function Profile({ navigate }) {
            <div className="flex-1 min-w-0">
               <h1 className="text-[22px] font-black text-[#1a1a2e] leading-tight truncate">
                 {profile?.full_name || user.email?.split('@')[0]}
+                {isDeveloper && (
+                  <span className="ml-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-red-600 text-white rounded-lg text-[9px] font-black tracking-tighter align-middle animate-pulse">
+                    🛡️ ROOT
+                  </span>
+                )}
               </h1>
               <p className="text-xs font-bold text-gray-400 mt-0.5 truncate uppercase tracking-tight">{user.email}</p>
               
@@ -131,7 +142,7 @@ export default function Profile({ navigate }) {
       <div className="px-6 pt-10 flex flex-col gap-8">
         {/* Eco Stats */}
         <div className="flex flex-col gap-4">
-           <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-1">Statistik Hijau</h3>
+           <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-1">{t('green_stats')}</h3>
            <Card padding="p-6">
               <div className="grid grid-cols-3 gap-6">
                  {[
@@ -152,8 +163,8 @@ export default function Profile({ navigate }) {
         {/* Recent Contributions */}
         <div className="flex flex-col gap-4">
            <div className="flex items-center justify-between px-1">
-              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">Kontribusi Terakhir</h3>
-              <button className="text-[10px] font-black text-[#3ec976] uppercase tracking-widest">Lihat Semua</button>
+              <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em]">{t('recent_contributions')}</h3>
+              <button className="text-[10px] font-black text-[#3ec976] uppercase tracking-widest">{t('view_all')}</button>
            </div>
            <Card padding="p-1">
               <div className="flex flex-col">
@@ -172,12 +183,12 @@ export default function Profile({ navigate }) {
 
         {/* Global Settings */}
         <div className="flex flex-col gap-6">
-           <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-1">Pengaturan & Privasi</h3>
+           <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] px-1">{t('privacy_settings')}</h3>
            
            <div className="flex flex-col gap-4">
               {/* Language Switch */}
               <Card padding="p-5" className="flex flex-col gap-4">
-                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">Bahasa Aplikasi</p>
+                 <p className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">{t('language')}</p>
                  <div className="flex gap-2">
                     {[
                       { code: 'id', label: '🇮🇩 ID' },
@@ -188,9 +199,10 @@ export default function Profile({ navigate }) {
                         onClick={() => handleLang(l.code)}
                         className="flex-1 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all duration-300 border-2"
                         style={{
-                          background: lang === l.code ? '#1a1a2e' : '#F9FAFB',
-                          color: lang === l.code ? '#fff' : '#6b7280',
-                          borderColor: lang === l.code ? '#1a1a2e' : 'transparent'
+                          background: lang === l.code ? '#3ec976' : '#F9FAFB',
+                          color: lang === l.code ? '#fff' : '#1a1a2e',
+                          borderColor: lang === l.code ? '#3ec976' : 'transparent',
+                          boxShadow: lang === l.code ? '0 8px 24px rgba(62,201,118,0.2)' : 'none'
                         }}
                       >
                         {l.label}
@@ -248,7 +260,7 @@ export default function Profile({ navigate }) {
               </Card>
 
               {/* Developer / Admin Console */}
-              {profile?.is_super_admin && (
+              {isDeveloper && (
                 <Card className="border-2 border-dashed border-[#3ec976]/30 bg-[#3ec976]/5" padding="p-4">
                    <Button 
                      variant="success" 
@@ -262,28 +274,41 @@ export default function Profile({ navigate }) {
            </div>
         </div>
 
+        {/* Support & Support */}
+        <div className="flex flex-col gap-4 mt-6">
+           <button 
+             onClick={() => navigate('support')}
+             className="w-full flex items-center justify-between p-5 bg-white rounded-[24px] shadow-sm border border-gray-50 active:scale-[0.98] transition-all"
+           >
+             <div className="flex items-center gap-4">
+               <div className="w-12 h-12 rounded-2xl bg-[#3ec976] flex items-center justify-center text-2xl shadow-soft">🚀</div>
+               <div className="text-left">
+                  <p className="text-[15px] font-black text-[#1a1a2e]">{t('support_chat_now')}</p>
+                  <p className="text-[11px] font-bold text-gray-400 mt-1 uppercase tracking-wider">Direct to Developer (Mas CEO)</p>
+               </div>
+             </div>
+             <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#D1D5DB" strokeWidth={3}>
+               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+             </svg>
+           </button>
+        </div>
+
         {/* Danger Zone */}
         <div className="flex flex-col gap-4 mt-4 pb-12">
            <Button 
              variant="dark" 
-             className="!h-16 !rounded-[24px] !font-black !text-base"
-             onClick={handleLogout}
+             className="!h-16 !rounded-[24px] !font-black !text-base shadow-lg"
+             onClick={() => setShowLogoutModal(true)}
            >
-             📦 Keluar Sesi
+             📦 {t('logout')}
            </Button>
            
            <button
              onClick={handleDeleteAccount}
              disabled={deleting}
-             className="w-full py-5 rounded-[24px] text-xs font-black uppercase tracking-widest transition-all duration-300"
-             style={{ 
-               background: deleteConfirm ? 'rgba(239,68,68,0.1)' : 'transparent', 
-               color: '#ef4444',
-               border: '2px solid transparent',
-               borderColor: deleteConfirm ? '#ef4444' : 'transparent'
-             }}
+             className="w-full py-5 rounded-[24px] text-xs font-black uppercase tracking-widest transition-all duration-300 opacity-60 hover:opacity-100 text-red-500"
            >
-             {deleting ? 'Processing...' : deleteConfirm ? '⚠️ Tekan lagi untuk Konfirmasi' : 'Hapus Akun Permanen'}
+             {t('delete_account')}
            </button>
            
            <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-widest mt-4">
@@ -291,6 +316,89 @@ export default function Profile({ navigate }) {
            </p>
         </div>
       </div>
+
+      {/* Account Deletion Confirmation Modal */}
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => !deleting && setShowDeleteModal(false)}
+        title={t('delete_confirm_title')}
+      >
+        <div className="flex flex-col gap-6">
+           <Card padding="p-5" className="bg-red-50 border border-red-100">
+              <div className="flex gap-4">
+                 <span className="text-2xl">⚠️</span>
+                 <p className="text-sm font-bold text-red-600 leading-relaxed">
+                   {t('delete_confirm_desc')}
+                 </p>
+              </div>
+           </Card>
+
+           <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest pl-1">
+                {t('delete_confirm_input_label')}
+              </label>
+              <Input
+                value={deleteInput}
+                onChange={e => setDeleteInput(e.target.value)}
+                placeholder={t('delete_confirm_phrase')}
+                className="!bg-white"
+              />
+           </div>
+
+           <div className="flex flex-col gap-3 mt-4">
+              <Button
+                variant="danger"
+                className="!h-16 !rounded-[24px] !font-black !text-base shadow-lg"
+                disabled={deleteInput !== t('delete_confirm_phrase') || deleting}
+                loading={deleting}
+                onClick={executeDeleteDeleteAccount}
+              >
+                🔥 {t('delete_account')}
+              </Button>
+              <Button
+                variant="secondary"
+                className="!h-14 !rounded-[22px] !font-black !text-sm"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+              >
+                {t('cancel')}
+              </Button>
+           </div>
+        </div>
+      </Modal>
+
+      {/* Logout Confirmation Modal */}
+      <Modal
+        isOpen={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        title={t('logout')}
+      >
+        <div className="flex flex-col gap-8">
+           <div className="text-center">
+              <div className="text-5xl mb-6">📦</div>
+              <p className="font-bold text-[#1a1a2e] text-lg leading-tight">
+                {t('logout_confirm')}
+              </p>
+           </div>
+           
+           <div className="flex flex-col gap-3">
+              <Button 
+                variant="dark"
+                className="!h-14 !rounded-[22px] !font-black !text-base"
+                onClick={handleLogout}
+              >
+                {t('logout')}
+              </Button>
+              <Button 
+                variant="secondary"
+                className="!h-12 !rounded-[20px] !font-black !text-sm"
+                onClick={() => setShowLogoutModal(false)}
+              >
+                {t('cancel')}
+              </Button>
+           </div>
+        </div>
+      </Modal>
     </div>
   )
 }

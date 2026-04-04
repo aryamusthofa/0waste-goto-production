@@ -28,8 +28,14 @@ export default function Checkout({ navigate, params }) {
 
   const handleConfirm = async () => {
     if (!user || !product) return
-    setLoading(true)
 
+    // Safeguard: Check if store is closed
+    if (product.profiles?.is_open === false) {
+      show('Maaf, toko baru saja tutup. Silakan coba lagi besok.', 'error')
+      return
+    }
+
+    setLoading(true)
     try {
       // 1. Buat pesanan di Database (Status masih pending)
       const { data, error: rpcErr } = await supabase.rpc('place_order', {
@@ -104,32 +110,39 @@ export default function Checkout({ navigate, params }) {
 
   // ---- SUCCESS SCREEN ----
   if (orderId) return (
-    <div className="flex flex-col min-h-screen items-center justify-center px-6 bg-white">
+    <div className="flex flex-col min-h-screen items-center justify-center px-6 bg-[#F9FAFB]">
       <div className="text-center animate-pop-in w-full max-w-sm">
-        <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mx-auto mb-8 shadow-soft"
-          style={{ background: 'rgba(62,201,118,0.12)', boxShadow: '0 8px 32px rgba(62,201,118,0.2)' }}>
-          ✅
+        <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl mx-auto mb-8 shadow-float bg-white">
+          {paymentMethod === 'digital' ? '💳' : '📦'}
         </div>
 
-        <h2 className="text-[28px] font-black mb-2 text-[#1a1a2e] leading-tight">Pesanan Diterima!</h2>
-        <p className="text-gray-400 font-medium mb-10">
-          {paymentMethod === 'digital' ? 'Pembayaran sedang divalidasi sistem.' : 'Siapkan pembayaran saat barang tiba.'}
+        <h2 className="text-[32px] font-black mb-3 text-[#1a1a2e] leading-tight tracking-tight">Pesanan Diterima!</h2>
+        <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-10">
+          {paymentMethod === 'digital' ? 'Menunggu Konfirmasi Sistem' : 'Pesanan Cod Siap Diproses'}
         </p>
 
-        <Card padding="p-6" className="mb-10 text-left border border-gray-50">
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Order ID Reference</p>
-          <p className="font-mono text-xs font-bold text-[#1a1a2e] break-all">#{orderId}</p>
+        <Card padding="p-8" className="mb-10 text-left border-2 border-white rounded-card shadow-premium relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-1 bg-[#3ec976]"></div>
+          <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-4">Ringkasan Transaksi</p>
           
-          <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-50">
+          <div className="flex justify-between items-center mb-6">
+             <div className="flex flex-col">
+                <span className="text-[10px] font-black text-gray-400 uppercase">Order ID</span>
+                <span className="font-mono text-xs font-bold text-[#1a1a2e]">#{orderId.slice(0,18)}</span>
+             </div>
+             <Badge variant="success" className="!text-[9px] !px-2">VERIFIED</Badge>
+          </div>
+
+          <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-50">
             <div>
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Metode</p>
-              <p className="text-xs font-bold text-[#1a1a2e] mt-0.5">
-                {method === 'pickup' ? '🏪 Pickup' : '🛵 Delivery'}
+              <p className="text-xs font-black text-[#1a1a2e] mt-1 uppercase">
+                {method}
               </p>
             </div>
             <div>
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Bayar</p>
-              <p className="text-xs font-black text-[#3ec976] mt-0.5">
+              <p className="text-sm font-black text-[#3ec976] mt-1">
                 Rp {total.toLocaleString('id')}
               </p>
             </div>
@@ -137,61 +150,64 @@ export default function Checkout({ navigate, params }) {
         </Card>
 
         <div className="flex flex-col gap-4">
-          <Button onClick={() => navigate('orders')}>Lihat Pesanan Saya</Button>
-          <Button variant="secondary" onClick={() => navigate('home')}>Kembali ke Beranda</Button>
+          <Button onClick={() => navigate('orders')}>Lacak Pesanan</Button>
+          <Button variant="ghost" onClick={() => navigate('home')} className="!text-gray-400 font-black uppercase text-[10px] tracking-widest">Kembali Berbelanja</Button>
         </div>
       </div>
     </div>
   )
 
   if (!product) return (
-    <div className="flex flex-col min-h-screen items-center justify-center p-6 bg-white text-center">
-      <div className="text-6xl mb-6 animate-bounce">🛒</div>
-      <p className="text-gray-400 font-bold max-w-[200px]">Keranjang kamu kosong. Yuk belanja dulu!</p>
-      <Button variant="primary" onClick={() => navigate('home')} className="mt-8">Cari Produk</Button>
+    <div className="flex flex-col min-h-screen items-center justify-center p-8 bg-white text-center">
+      <div className="text-8xl mb-8 animate-bounce">🛒</div>
+      <h2 className="text-2xl font-black text-[#1a1a2e] mb-2 font-bold">Keranjang Kosong</h2>
+      <p className="text-gray-400 font-medium max-w-[240px]">Yuk, jelajahi produk surplus terbaik di sekitar kamu!</p>
+      <Button variant="primary" onClick={() => navigate('home')} className="mt-10 max-w-[200px]">Mulai Belanja</Button>
     </div>
   )
 
   return (
-    <div className="flex flex-col min-h-screen pb-36 bg-[#F9FAFB]">
-      <div className="px-6 pt-14 pb-6 bg-white rounded-b-[40px] shadow-[0_8px_32px_rgba(0,0,0,0.02)] flex items-center gap-4">
+    <div className="flex flex-col min-h-screen pb-40 bg-[#F9FAFB]">
+      <div className="px-6 pt-16 pb-8 bg-white rounded-b-[42px] shadow-soft flex items-center gap-5">
         <button 
           onClick={() => navigate('product', { product })} 
-          className="w-11 h-11 rounded-[18px] flex items-center justify-center bg-gray-50 active:scale-90 transition-all text-[#1a1a2e]"
+          className="w-12 h-12 rounded-icon flex items-center justify-center bg-gray-50 active:scale-90 transition-all text-[#1a1a2e] shadow-sm"
         >
           <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <div>
-          <h1 className="font-black text-[22px] text-[#1a1a2e] leading-tight">{t('checkout')}</h1>
-          <p className="text-xs font-bold text-gray-400 mt-0.5 uppercase tracking-wider">{t('review_items')}</p>
+          <h1 className="font-black text-[24px] text-[#1a1a2e] leading-tight">{t('checkout')}</h1>
+          <p className="text-[10px] font-black text-gray-300 mt-1 uppercase tracking-[0.2em]">{t('review_items')}</p>
         </div>
       </div>
 
-      <div className="flex-1 px-6 pt-6 flex flex-col gap-6 animate-fade-in">
-        <Card padding="p-4" className="flex gap-4 items-center">
-          <img
-            src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=100'}
-            alt={product.name}
-            className="w-20 h-20 rounded-2xl object-cover flex-shrink-0"
-            onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=100'}
-          />
+      <div className="flex-1 px-6 pt-8 flex flex-col gap-8 animate-fade-in">
+        <Card padding="p-5" className="flex gap-5 items-center rounded-card shadow-soft border border-white">
+          <div className="relative overflow-hidden rounded-2xl w-24 h-24 bg-gray-50 shadow-inner">
+            <img
+              src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=100'}
+              alt={product.name}
+              className="w-full h-full object-cover animate-fade-in"
+              onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=100'}
+            />
+          </div>
           <div className="flex-1 min-w-0">
-            <p className="font-black text-sm text-[#1a1a2e] truncate">{product.name}</p>
-            <p className="text-xs font-bold text-gray-400 mt-1 uppercase">Jumlah: {qty}</p>
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-base font-black text-[#1a1a2e]">
+            <p className="font-black text-[15px] text-[#1a1a2e] truncate uppercase tracking-tight">{product.name}</p>
+            <p className="text-[10px] font-black text-gray-400 mt-1 uppercase tracking-widest">Qty: {qty}</p>
+            <div className="flex items-center gap-3 mt-3">
+              <span className="text-lg font-black text-[#1a1a2e]">
                 Rp {product.discount_price?.toLocaleString('id')}
               </span>
-              <Badge variant="dark" icon="🛡️" className="!px-2 !py-0.5 !text-[8px]">SECURITY_VERIFIED</Badge>
+              <Badge variant="success" icon="🛡️" className="!px-2 !py-0.5 !text-[8px]">TRUSTED</Badge>
             </div>
           </div>
         </Card>
 
-        <div className="flex flex-col gap-4">
-          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] pl-1">Metode Penerimaan</p>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-5">
+          <p className="text-[11px] font-black text-gray-300 uppercase tracking-[0.3em] pl-1">Metode Penerimaan</p>
+          <div className="grid grid-cols-2 gap-5">
             {[
               { value: 'pickup',   label: t('pickup'),   icon: '🏪', desc: 'Ambil Sendiri' },
               { value: 'delivery', label: t('delivery'), icon: '🛵', desc: '+Rp 5.000' },
@@ -199,93 +215,89 @@ export default function Checkout({ navigate, params }) {
               <button 
                 key={m.value} 
                 onClick={() => setMethod(m.value)}
-                className="relative p-5 rounded-[28px] text-left transition-all duration-300 active:scale-95"
+                className="relative p-6 rounded-card text-left transition-all duration-500 active:scale-95"
                 style={{
-                  border: `2px solid ${method === m.value ? '#3ec976' : 'white'}`,
+                  border: `3px solid ${method === m.value ? '#3ec976' : 'white'}`,
                   background: 'white',
-                  boxShadow: method === m.value ? '0 12px 32px rgba(62,201,118,0.15)' : '0 4px 12px rgba(0,0,0,0.03)',
+                  boxShadow: method === m.value ? '0 16px 40px rgba(62,201,118,0.18)' : '0 4px 12px rgba(0,0,0,0.02)',
                 }}
               >
-                <div className="flex items-center justify-between mb-2">
-                   <span className="text-2xl">{m.icon}</span>
-                   {method === m.value && <div className="w-5 h-5 rounded-full bg-[#3ec976] flex items-center justify-center text-[10px] text-white">✓</div>}
+                <div className="flex items-center justify-between mb-3">
+                   <span className="text-3xl">{m.icon}</span>
+                   {method === m.value && <div className="w-6 h-6 rounded-full bg-[#3ec976] shadow-[0_0_12px_#3ec976] flex items-center justify-center text-[11px] text-white font-black">✓</div>}
                 </div>
-                <p className="font-black text-[13px] text-[#1a1a2e]">{m.label}</p>
-                <p className="text-[10px] font-bold text-gray-400 mt-0.5 uppercase tracking-tight">{m.desc}</p>
+                <p className="font-black text-[13px] text-[#1a1a2e] uppercase tracking-tight">{m.label}</p>
+                <p className="text-[9px] font-black text-gray-300 mt-1 uppercase tracking-widest">{m.desc}</p>
               </button>
             ))}
           </div>
         </div>
 
-        <div className="flex flex-col gap-4">
-          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] pl-1">Gerbang Pembayaran</p>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-5">
+          <p className="text-[11px] font-black text-gray-300 uppercase tracking-[0.3em] pl-1">Gerbang Pembayaran</p>
+          <div className="grid grid-cols-2 gap-5">
             {[
-              { value: 'digital', label: 'Midtrans Pay', icon: '💳', desc: 'E-Wallet & CC' },
+              { value: 'digital', label: 'Midtrans Pay', icon: '💎', desc: 'E-Wallet & CC' },
               { value: 'cod',     label: t('cod'),        icon: '💵', desc: 'Bayar di Tempat' },
             ].map(p => (
               <button 
                 key={p.value} 
                 onClick={() => setPaymentMethod(p.value)}
-                className="p-5 rounded-[28px] transition-all duration-300 active:scale-95 flex flex-col gap-1"
+                className="p-6 rounded-card transition-all duration-500 active:scale-95 flex flex-col gap-1"
                 style={{
-                  border: `2px solid ${paymentMethod === p.value ? '#3ec976' : 'white'}`,
+                  border: `3px solid ${paymentMethod === p.value ? '#3ec976' : 'white'}`,
                   background: 'white',
-                  boxShadow: paymentMethod === p.value ? '0 12px 32px rgba(62,201,118,0.15)' : '0 4px 12px rgba(0,0,0,0.03)',
+                  boxShadow: paymentMethod === p.value ? '0 16px 40px rgba(62,201,118,0.18)' : '0 4px 12px rgba(0,0,0,0.02)',
                 }}
               >
-                <div className="flex items-center justify-between">
-                   <span className="text-2xl">{p.icon}</span>
-                   {paymentMethod === p.value && <div className="w-5 h-5 rounded-full bg-[#3ec976] flex items-center justify-center text-[10px] text-white">✓</div>}
+                <div className="flex items-center justify-between mb-2">
+                   <span className="text-3xl">{p.icon}</span>
+                   {paymentMethod === p.value && <div className="w-6 h-6 rounded-full bg-[#3ec976] shadow-[0_0_12px_#3ec976] flex items-center justify-center text-[11px] text-white font-black">✓</div>}
                 </div>
-                <p className="font-black text-[13px] text-[#1a1a2e] mt-1">{p.label}</p>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">{p.desc}</p>
+                <p className="font-black text-[13px] text-[#1a1a2e] uppercase tracking-tight">{p.label}</p>
+                <p className="text-[9px] font-black text-gray-300 mt-1 uppercase tracking-widest">{p.desc}</p>
               </button>
             ))}
           </div>
         </div>
 
-        <Card padding="p-6" className="border border-gray-50 flex flex-col gap-4">
-          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em]">Ringkasan Pembayaran</p>
-          <div className="flex flex-col gap-3">
+        <Card padding="p-8" className="border-2 border-white rounded-card flex flex-col gap-5 bg-white mb-10 shadow-soft">
+          <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Ringkasan Pembayaran</p>
+          <div className="flex flex-col gap-4">
              <div className="flex justify-between items-center text-sm font-bold">
-                <span className="text-gray-400">{t('subtotal')}</span>
-                <span className="text-[#1a1a2e]">Rp {subtotal.toLocaleString('id')}</span>
+                <span className="text-gray-400 uppercase tracking-widest text-[10px]">{t('subtotal')}</span>
+                <span className="text-[#1a1a2e] font-black">Rp {subtotal.toLocaleString('id')}</span>
              </div>
              <div className="flex justify-between items-center text-sm font-bold">
-                <span className="text-gray-400">{t('pickup_fee')}</span>
-                <span className={shippingFee > 0 ? 'text-[#1a1a2e]' : 'text-[#3ec976]'}>
-                   {shippingFee > 0 ? `Rp ${shippingFee.toLocaleString('id')}` : 'Gratis'}
+                <span className="text-gray-400 uppercase tracking-widest text-[10px]">{t('pickup_fee')}</span>
+                <span className={shippingFee > 0 ? 'text-[#1a1a2e] font-black' : 'text-[#3ec976] font-black'}>
+                   {shippingFee > 0 ? `Rp ${shippingFee.toLocaleString('id')}` : 'GRATIS'}
                 </span>
              </div>
              <div className="h-[1px] bg-gray-50 my-1" />
              <div className="flex justify-between items-center">
-                <span className="text-sm font-black text-[#1a1a2e] uppercase tracking-widest">{t('total')}</span>
-                <span className="text-2xl font-black text-[#3ec976]">Rp {total.toLocaleString('id')}</span>
+                <span className="text-xs font-black text-[#1a1a2e] uppercase tracking-[0.2em]">{t('total')}</span>
+                <span className="text-[28px] font-black text-[#1a1a2e] tracking-tighter">Rp {total.toLocaleString('id')}</span>
              </div>
           </div>
         </Card>
-
-        <div className="flex items-center gap-4 p-5 rounded-[32px] bg-white border border-gray-50 mb-6 shadow-sm">
-           <div className="w-12 h-12 rounded-2xl bg-[#3ec976]/10 flex items-center justify-center text-2xl">⚡</div>
-           <div>
-              <p className="text-xs font-black text-[#1a1a2e] uppercase tracking-tight">Checkout Instan</p>
-              <p className="text-[10px] font-bold text-gray-400 mt-0.5 leading-relaxed">Pembayaran Anda dilindungi enkripsi 256-bit standar industri.</p>
-           </div>
-        </div>
       </div>
 
-      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-6 pb-12 bg-white rounded-t-[48px] shadow-[0_-12px_48px_rgba(0,0,0,0.08)] z-50 animate-slide-up">
+      <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] p-8 pb-12 bg-white rounded-t-[54px] shadow-premium z-50 animate-slide-up border-t border-gray-50">
         <Button
           onClick={handleConfirm}
           loading={loading}
-          className="!h-16 !text-lg !font-black !rounded-[24px]"
+          className="!h-18 !text-xl !font-black !rounded-button !bg-[#1a1a2e] !text-white hover:!bg-black shadow-xl"
         >
-          {loading ? 'Processing...' : `Bayar Sekarang — Rp ${total.toLocaleString('id')}`}
+          {loading ? 'Processing...' : `Konfirmasi & Bayar`}
         </Button>
-        <p className="text-center text-[10px] font-black text-gray-300 mt-5 uppercase tracking-[0.3em]">
-           SECURE GATEWAY • MIDTRANS SNAP
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-6">
+           <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+           <p className="text-center text-[10px] font-black text-gray-300 uppercase tracking-[0.4em]">
+              AUTHENTICATED GATEWAY • MIDTRANS
+           </p>
+           <div className="w-1 h-1 rounded-full bg-gray-300"></div>
+        </div>
       </div>
     </div>
   )

@@ -12,4 +12,24 @@ export default defineConfig({
       targets: ['defaults', 'not IE 11'],
     }),
   ],
+  build: {
+    target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-i18next', 'i18next'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-capacitor': ['@capacitor/core', '@capacitor/preferences'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 })

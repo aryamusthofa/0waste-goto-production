@@ -25,6 +25,7 @@ const Welcome          = lazy(() => import('./pages/Welcome'))
 const PartnerDashboard = lazy(() => import('./pages/PartnerDashboard'))
 const Profile          = lazy(() => import('./pages/Profile'))
 const AdminConsole     = lazy(() => import('./pages/AdminConsole'))
+const SupportChat      = lazy(() => import('./pages/SupportChat'))
 
 function LoadingScreen() {
   return (
@@ -58,6 +59,7 @@ function MainApp() {
       case 'admin':            return <AdminConsole navigate={navigate} />
       case 'zera':             return <ZeraAI navigate={navigate} />
       case 'wishlist':         return <Wishlist navigate={navigate} />
+      case 'support':          return <SupportChat navigate={navigate} />
       case 'forgot-password':  return <ForgotPassword navigate={navigate} />
       case 'legal':            return <Legal navigate={navigate} />
       case 'onboarding':       return <Onboarding navigate={navigate} />
@@ -74,8 +76,8 @@ function MainApp() {
          {renderRoute()}
       </Suspense>
 
-      {/* Persistent Bottom UI */}
-      {route !== 'login' && route !== 'register' && (
+      {/* Persistent Bottom UI (Visible only on main app tabs) */}
+      {['home', 'orders', 'dashboard', 'profile', 'wishlist', 'admin', 'zera', 'support'].includes(route) && (
         <BottomNav 
           navigate={navigate} 
           activeRoute={route} 

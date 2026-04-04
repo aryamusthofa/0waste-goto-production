@@ -39,16 +39,16 @@ function WishlistCard({ item, onRemove, navigate }) {
   return (
     <Card 
       padding="p-0" 
-      className={`overflow-hidden cursor-pointer active:scale-[0.98] transition-transform duration-300 border-2 ${isExpired ? 'opacity-60 grayscale border-transparent' : 'border-white hover:border-[#3ec976]/20'}`}
+      className={`overflow-hidden cursor-pointer active:scale-[0.98] transition-all duration-300 border-2 rounded-card shadow-soft hover:shadow-premium ${isExpired ? 'opacity-60 grayscale border-transparent' : 'border-white hover:border-[#3ec976]/20'}`}
       onClick={() => navigate('product', { product })}
     >
       <div className="flex gap-0 h-[120px]">
         {/* Image Section */}
-        <div className="relative w-[120px] flex-shrink-0 bg-gray-50 h-full">
+        <div className="relative w-[120px] flex-shrink-0 bg-gray-100 h-full overflow-hidden">
           <img
             src={product.image_url || 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=300'}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 animate-fade-in"
             onError={e => e.target.src = 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=300'}
           />
           {discount > 0 && (
@@ -133,6 +133,10 @@ export default function Wishlist({ navigate }) {
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return }
+    
+    // Safety timeout: 10 seconds max loading
+    const timeout = setTimeout(() => setLoading(false), 10000)
+    
     setLoading(true)
     try {
       const { data, error } = await supabase
@@ -140,13 +144,17 @@ export default function Wishlist({ navigate }) {
         .select('id, product_id, products(*)')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-      if (!error) setItems(data || [])
+      
+      if (error) throw error
+      setItems(data || [])
     } catch (e) {
-      show('Gagal memuat wishlist.', 'error')
+      console.error('Wishlist error:', e)
+      show(t('error'), 'error')
     } finally {
+      clearTimeout(timeout)
       setLoading(false)
     }
-  }, [user, show])
+  }, [user, show, t])
 
   useEffect(() => { load() }, [load])
 
@@ -205,13 +213,13 @@ export default function Wishlist({ navigate }) {
              <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest animate-pulse">Sinkronisasi Wishlist...</p>
           </div>
         ) : items.length === 0 ? (
-          <div className="flex flex-col items-center text-center gap-6 pt-16 bg-white rounded-[40px] p-10 shadow-soft">
-            <div className="text-7xl animate-pop-in">❤️</div>
-            <div>
+          <div className="flex flex-col items-center text-center gap-6 pt-16 pb-20 bg-white rounded-card p-10 shadow-premium border border-gray-50/50">
+            <div className="w-24 h-24 rounded-full flex items-center justify-center text-5xl bg-red-50/30 shadow-inner animate-pop-in">❤️</div>
+            <div className="max-w-[240px]">
               <h2 className="text-xl font-black text-[#1a1a2e]">Masih Kosong</h2>
-              <p className="text-xs font-bold text-gray-400 mt-2 leading-relaxed uppercase tracking-wide">Tap ikon hati di halaman produk untuk menyimpan barang favoritmu.</p>
+              <p className="text-[11px] font-black text-gray-400 mt-2 leading-relaxed uppercase tracking-widest">Sentuh ikon hati di halaman produk untuk menyimpan barang favoritmu.</p>
             </div>
-            <Button onClick={() => navigate('home')} className="mt-4">Jelajahi Produk</Button>
+            <Button onClick={() => navigate('home')} className="mt-4 !max-w-[200px]">Jelajahi Produk</Button>
           </div>
         ) : (
           <div className="flex flex-col gap-5 animate-fade-in">
