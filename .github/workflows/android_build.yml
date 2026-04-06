@@ -2,7 +2,7 @@ name: 🏗️ 0Waste Android Production Build
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 env:
@@ -11,6 +11,7 @@ env:
 
 jobs:
   build:
+    name: Build & Sign Production APK
     runs-on: ubuntu-latest
     timeout-minutes: 60
 
@@ -42,6 +43,7 @@ jobs:
       - name: 📦 Install Dependencies
         run: |
           echo "::group::NPM Install"
+          rm -f package-lock.json
           npm install --prefer-offline --no-audit
           echo "::endgroup::"
         continue-on-error: false
@@ -55,12 +57,17 @@ jobs:
           echo "::group::Verify Plugin Installation"
           npm ls @vitejs/plugin-react @tailwindcss/vite @vitejs/plugin-legacy
           echo "::endgroup::"
+          
+          echo "::group::Verify Capacitor CLI"
+          npx cap --version
+          echo "::endgroup::"
 
       - name: 🛠️ Build Web Assets (Production)
         run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AI_PROVIDER: gemini
           CI: true
         continue-on-error: false
 
@@ -114,7 +121,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success()
         with:
-          name: 0waste-production-release-${{ github.run_number }}
+          name: 0Waste-Production-Build-${{ github.run_number }}
           path: android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
           compression-level: 9
